@@ -3248,7 +3248,14 @@ async function pullFromCloud(forceApply){
     setSyncStatus('⟳ Checking…', 'var(--text-dim)');
     const resp = await fetch(syncUrl + '?t=' + Date.now());
     const data = await resp.json();
-    if(!data.ok || !data.state) throw new Error(data.error||'No state');
+    if(!data.ok) throw new Error(data.error||'Server error');
+    if(!data.state){
+      // Sheet is empty — connected but no data saved yet. Stay online, use local state.
+      setSyncStatus('☁ Live · No cloud data yet', 'var(--green-bright)');
+      lastSyncTs = data.timestamp;
+      isSyncing = false;
+      return;
+    }
 
     const serverTs = data.timestamp;
     const isNewer  = !lastSyncTs || new Date(serverTs) > new Date(lastSyncTs);
