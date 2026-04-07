@@ -3212,8 +3212,9 @@ function saveState(){
         state,
         author: localStorage.getItem(AUTHOR_KEY)||'Unknown'
       }));
-      const url = syncUrl + '?action=save&data=' + payload + '&callback=__aexSaveCallback&t=' + Date.now();
-      const data = await jsonpRequest(url, '__aexSaveCallback');
+      const url = syncUrl + '?action=save&data=' + payload + '&t=' + Date.now();
+      const resp = await fetch(url);
+      const data = await resp.json();
       if(data.ok){
         lastSyncTs = data.timestamp;
         ind.className = 'save-indicator saved';
@@ -3250,40 +3251,13 @@ function loadState(){
 }
 
 // ── Pull latest from cloud, re-render if newer ──
-// JSONP helper — works from file:// with no CORS issues
-function jsonpRequest(url, callbackName){
-  return new Promise((resolve, reject)=>{
-    const timeout = setTimeout(()=>{
-      cleanup();
-      reject(new Error('Request timed out'));
-    }, 10000);
-
-    function cleanup(){
-      clearTimeout(timeout);
-      delete window[callbackName];
-      const el = document.getElementById('jsonp-'+callbackName);
-      if(el) el.remove();
-    }
-
-    window[callbackName] = function(data){
-      cleanup();
-      resolve(data);
-    };
-
-    const script = document.createElement('script');
-    script.id = 'jsonp-'+callbackName;
-    script.src = url;
-    script.onerror = ()=>{ cleanup(); reject(new Error('Script load failed — check URL')); };
-    document.head.appendChild(script);
-  });
-}
-
 async function pullFromCloud(forceApply){
   if(!syncUrl || isSyncing) return;
   try {
     isSyncing = true;
     setSyncStatus('⟳ Checking…', 'var(--text-dim)');
-    const data = await jsonpRequest(syncUrl + '?callback=__aexPullCallback&t=' + Date.now(), '__aexPullCallback');
+    const resp = await fetch(syncUrl + '?t=' + Date.now());
+    const data = await resp.json();
     if(!data.ok || !data.state) throw new Error(data.error||'No state');
 
     const serverTs = data.timestamp;
