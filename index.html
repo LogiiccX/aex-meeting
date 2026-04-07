@@ -1,0 +1,3491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEX Daily Trade Coordination</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2330;
+    --border: #30363d;
+    --accent: #f0a500;
+    --accent2: #e05a00;
+    --green: #238636;
+    --green-bright: #3fb950;
+    --red: #da3633;
+    --yellow: #d29922;
+    --blue: #1f6feb;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+    --radius: 6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #0d1117 0%, #1a1f2e 100%);
+    border-bottom: 2px solid var(--accent);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .header-meta { display: flex; gap: 20px; }
+  .meta-item { display: flex; flex-direction: column; }
+  .meta-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .meta-value { font-size: 14px; font-weight: 600; color: var(--text); }
+  .meta-value input, .meta-value select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+  .meta-value input:focus, .meta-value select:focus { border-color: var(--accent); }
+
+  .timer-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 14px;
+  }
+  .timer-display {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 65px;
+  }
+  .timer-display.warn { color: var(--yellow); }
+  .timer-display.over { color: var(--red); }
+  .btn-sm {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'Barlow', sans-serif;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── NAV TABS ── */
+  .nav {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    gap: 2px;
+    overflow-x: auto;
+  }
+  .nav-tab {
+    padding: 10px 18px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .nav-badge {
+    background: var(--accent);
+    color: #000;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 10px;
+    display: none;
+  }
+  .nav-badge.show { display: inline; }
+
+  /* ── MAIN CONTENT ── */
+  .content { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--radius);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn-primary:hover { background: #f5b800; }
+  .btn-success { background: var(--green); color: #fff; border-color: var(--green); }
+  .btn-success:hover { background: #2ea043; }
+  .btn-ghost { background: transparent; color: var(--text-muted); border-color: var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text-muted); }
+  .btn-danger { background: transparent; color: var(--red); border-color: var(--red); }
+  .btn-danger:hover { background: var(--red); color: #fff; }
+  .btn-icon { padding: 5px 8px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+  }
+
+  /* ── GRID / FORMS ── */
+  .form-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.wide { grid-column: span 2; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  input[type="text"], input[type="number"], select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    padding: 6px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 60px; }
+  select option { background: var(--surface2); }
+
+  /* ── TABLE ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .data-table th {
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .data-table tr:hover td { background: rgba(240,165,0,0.04); }
+  .data-table tr:last-child td { border-bottom: none; }
+
+  /* ── STATUS BADGES ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .badge-here { background: rgba(35,134,54,0.2); color: var(--green-bright); border: 1px solid rgba(35,134,54,0.4); }
+  .badge-remote { background: rgba(31,111,235,0.2); color: #58a6ff; border: 1px solid rgba(31,111,235,0.4); }
+  .badge-absent { background: rgba(48,54,61,0.5); color: var(--text-dim); border: 1px solid var(--border); }
+  .badge-progress { background: rgba(31,111,235,0.2); color: #79c0ff; border: 1px solid rgba(31,111,235,0.3); }
+  .badge-complete { background: rgba(35,134,54,0.2); color: var(--green-bright); border: 1px solid rgba(35,134,54,0.4); }
+  .badge-blocked { background: rgba(218,54,51,0.2); color: #ff7b72; border: 1px solid rgba(218,54,51,0.4); }
+  .badge-pending { background: rgba(210,153,34,0.2); color: #e3b341; border: 1px solid rgba(210,153,34,0.3); }
+
+  /* ── ATTENDANCE SECTION ── */
+  .att-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px;
+  }
+  .att-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .att-card:hover { border-color: var(--accent); }
+  .att-card.here { border-left: 3px solid var(--green); }
+  .att-card.remote { border-left: 3px solid var(--blue); }
+  .att-card.absent { border-left: 3px solid var(--text-dim); opacity: 0.6; }
+  .att-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .att-info { flex: 1; min-width: 0; }
+  .att-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .att-company { font-size: 11px; color: var(--text-muted); }
+  .att-status-btn { flex-shrink: 0; }
+
+  .att-status-cycle {
+    display: flex;
+    gap: 4px;
+  }
+  .status-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .status-dot.active-here { border-color: var(--green); background: rgba(35,134,54,0.2); }
+  .status-dot.active-remote { border-color: var(--blue); background: rgba(31,111,235,0.2); }
+  .status-dot.active-absent { border-color: var(--text-dim); background: rgba(48,54,61,0.3); }
+  .status-dot:hover { border-color: var(--accent); }
+
+  /* ── MANPOWER ── */
+  .mp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+  }
+  .mp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .mp-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .mp-trade {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    text-transform: uppercase;
+  }
+  .mp-total {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .mp-inputs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+  }
+  .mp-input-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 4px;
+    border-right: 1px solid var(--border);
+  }
+  .mp-input-cell:last-child { border-right: none; }
+  .mp-input-label { font-size: 9px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+  .mp-input-cell input {
+    width: 48px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'Barlow Condensed', sans-serif;
+    padding: 2px 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+  }
+  .mp-input-cell input:focus { border-color: var(--accent); background: var(--surface2); }
+
+  .mp-totals-row {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: auto repeat(6, 1fr);
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .mp-totals-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .mp-total-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .mp-total-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .mp-total-cat { font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; }
+
+  /* ── TRADE COORD ── */
+  .trade-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .trade-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .trade-block-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .trade-block-body { padding: 14px 16px; display: grid; gap: 10px; }
+
+  /* ── SAFETY ── */
+  .safety-topic-bar {
+    background: linear-gradient(90deg, rgba(218,54,51,0.15) 0%, rgba(13,17,23,0) 100%);
+    border: 1px solid rgba(218,54,51,0.3);
+    border-left: 3px solid var(--red);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .safety-icon { font-size: 24px; }
+  .safety-topic-label { font-size: 11px; font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 1px; }
+  .safety-topic-value { font-size: 18px; font-weight: 700; font-family: 'Barlow Condensed', sans-serif; }
+
+  .s5-table { width: 100%; border-collapse: collapse; }
+  .s5-table th {
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .s5-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .s5-table tr:last-child td { border-bottom: none; }
+  .s5-pill { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+  .s5-sort { background: rgba(31,111,235,0.15); color: #79c0ff; }
+  .s5-set { background: rgba(130,80,200,0.15); color: #c084fc; }
+  .s5-shine { background: rgba(34,197,94,0.15); color: #86efac; }
+  .s5-std { background: rgba(251,146,60,0.15); color: #fdba74; }
+  .s5-sus { background: rgba(240,165,0,0.15); color: var(--accent); }
+  .s5-status { cursor: pointer; }
+
+  /* ── CONFLICTS ── */
+  .conflict-row td { vertical-align: top; }
+  .conflict-row.blocking td:first-child { border-left: 3px solid var(--red); }
+
+  /* ── SUMMARY PANEL ── */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 800; color: var(--accent); }
+  .stat-sub { font-size: 12px; color: var(--text-muted); }
+
+  /* ── ADD ROW FORM ── */
+  .add-form {
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-top: 10px;
+    display: none;
+  }
+  .add-form.open { display: block; }
+  .add-form-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── INSPECTION ── */
+  .insp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .insp-date { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+  .insp-info { flex: 1; }
+  .insp-type { font-weight: 700; font-size: 13px; }
+  .insp-notes { font-size: 12px; color: var(--text-muted); }
+
+  /* ── SCROLL ── */
+  .table-wrap { overflow-x: auto; }
+  .table-wrap::-webkit-scrollbar { height: 6px; }
+  .table-wrap::-webkit-scrollbar-track { background: var(--bg); }
+  .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── MISC ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .text-muted { color: var(--text-muted); }
+  .flex-gap { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .color-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  /* Trade color map */
+  .trade-beard { background: #f0a500; }
+  .trade-cajun { background: #58a6ff; }
+  .trade-eqshare { background: #3fb950; }
+  .trade-yates { background: #bc8cff; }
+  .trade-smyth { background: #ffa657; }
+  .trade-staffzone { background: #79c0ff; }
+  .trade-applied { background: #ff7b72; }
+
+  /* JHA table */
+  .jha-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px;
+  }
+  .jha-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .jha-trade { font-weight: 700; font-size: 13px; }
+  .jha-foreman { font-size: 11px; color: var(--text-muted); }
+  .jha-check {
+    width: 32px; height: 32px;
+    border-radius: var(--radius);
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .jha-check.done { border-color: var(--green); background: rgba(35,134,54,0.15); }
+  .jha-check:hover { border-color: var(--accent); }
+
+  /* print / export hint */
+  .export-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .header { flex-wrap: wrap; gap: 8px; }
+    .header-meta { flex-wrap: wrap; }
+    .content { padding: 12px; }
+    .att-grid { grid-template-columns: 1fr; }
+    .mp-grid { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    max-width: 520px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .modal-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .modal-body { color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 20px; }
+  .modal-options { display: grid; gap: 8px; margin-bottom: 20px; }
+  .modal-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color 0.15s;
+    user-select: none;
+  }
+  .modal-option:hover { border-color: var(--accent); }
+  .modal-option input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+  .modal-option-label { font-size: 13px; font-weight: 600; }
+  .modal-option-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ── SYNC SETUP BANNER ── */
+  .sync-banner {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface2);
+    border-top: 2px solid var(--accent);
+    padding: 16px 24px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    z-index: 999;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+  }
+  .sync-banner.hidden { display: none; }
+  .sync-banner-title { font-family: "Barlow Condensed",sans-serif; font-weight:800; font-size:16px; color:var(--accent); text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
+  .sync-banner input {
+    flex: 1; min-width: 260px; max-width: 500px;
+    background: var(--surface); border: 1px solid var(--accent);
+    border-radius: var(--radius); color: var(--text);
+    font-family: "Barlow",sans-serif; font-size:12px;
+    padding: 7px 12px; outline: none;
+  }
+
+  /* ── SAVE INDICATOR ── */
+  .save-indicator {
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.3s;
+  }
+  .save-indicator.saving { color: var(--yellow); }
+  .save-indicator.saved { color: var(--green-bright); }
+
+  /* ── EDIT BTN on att cards ── */
+  .att-edit {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .att-edit:hover { border-color: var(--accent); color: var(--accent); background: rgba(240,165,0,0.08); }
+
+  /* ── Inline edit inputs on att card ── */
+  .att-edit-name {
+    font-weight: 600; font-size: 13px;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 2px 6px;
+    width: 100%;
+    font-family: 'Barlow', sans-serif;
+    outline: none;
+  }
+  .att-edit-company {
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 2px 4px;
+    width: 100%;
+    font-family: 'Barlow', sans-serif;
+    outline: none;
+    margin-top: 3px;
+  }
+  .att-edit-company:focus { border-color: var(--accent); }
+  .att-save-btn {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1px solid var(--green); background: rgba(35,134,54,0.15);
+    color: var(--green-bright); font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .att-save-btn:hover { background: var(--green); color: #fff; }
+
+  /* ── REMOVE BTN on att cards ── */
+  .att-remove {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .att-remove:hover { border-color: var(--red); color: var(--red); background: rgba(218,54,51,0.1); }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">AEX</div>
+    <div class="header-meta">
+      <div class="meta-item">
+        <span class="meta-label">Date</span>
+        <span class="meta-value"><input type="text" id="hdr-date" style="width:110px"></span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Facilitator</span>
+        <span class="meta-value"><input type="text" id="hdr-facilitator" value="Dee Anthony" style="width:130px"></span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Safety Topic</span>
+        <span class="meta-value"><input type="text" id="hdr-safety" value="Equipment Operations" style="width:180px"></span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+      <div class="save-indicator" id="save-indicator">● Saved</div>
+      <div id="sync-status" style="font-size:10px;color:var(--text-dim)">⚡ Local only</div>
+    </div>
+    <button class="btn-sm" style="border-color:var(--accent);color:var(--accent)" onclick="openNewDay()">🗓 New Day</button>
+    <div class="timer-block">
+      <div>
+        <div class="meta-label" style="font-size:9px">ELAPSED</div>
+        <div class="timer-display" id="timer-display">00:00</div>
+      </div>
+      <button class="btn-sm" id="timer-btn" onclick="toggleTimer()">▶ Start</button>
+      <button class="btn-sm" onclick="resetTimer()">↺</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NEW DAY MODAL ══ -->
+<div class="modal-overlay" id="newday-modal">
+  <div class="modal">
+    <div class="modal-title">🗓 Start New Day</div>
+    <div class="modal-body">Choose what to carry forward. Unchecked items will be cleared.</div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">New Date</label>
+      <input type="text" id="newday-date" style="margin-top:4px;max-width:160px">
+    </div>
+    <div class="modal-options">
+      <label class="modal-option"><input type="checkbox" id="nd-keep-attendance" checked>
+        <div><div class="modal-option-label">Keep Attendance Roster</div>
+        <div class="modal-option-sub">Keeps all people — resets everyone to Absent so you mark fresh each morning</div></div>
+      </label>
+      <label class="modal-option"><input type="checkbox" id="nd-keep-manpower" checked>
+        <div><div class="modal-option-label">Keep Manpower Numbers</div>
+        <div class="modal-option-sub">Carry forward yesterday's counts as a starting point</div></div>
+      </label>
+      <label class="modal-option"><input type="checkbox" id="nd-keep-trades">
+        <div><div class="modal-option-label">Carry Over Incomplete Tasks</div>
+        <div class="modal-option-sub">Keeps tasks not marked Complete — clears completed ones</div></div>
+      </label>
+      <label class="modal-option"><input type="checkbox" id="nd-keep-conflicts" checked>
+        <div><div class="modal-option-label">Keep Open Conflicts</div>
+        <div class="modal-option-sub">Carry unresolved conflicts forward</div></div>
+      </label>
+      <label class="modal-option"><input type="checkbox" id="nd-keep-inspections" checked>
+        <div><div class="modal-option-label">Keep Open Inspections</div>
+        <div class="modal-option-sub">Carry incomplete inspections forward</div></div>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeNewDay()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmNewDay()">Start New Day →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NAV ══ -->
+<div class="nav">
+  <div class="nav-tab active" onclick="goto('summary')">📋 Summary</div>
+  <div class="nav-tab" onclick="goto('safety')">🦺 Safety & 5S</div>
+  <div class="nav-tab" onclick="goto('attendance')">👥 Attendance <span class="nav-badge" id="badge-att"></span></div>
+  <div class="nav-tab" onclick="goto('manpower')">💪 Manpower</div>
+  <div class="nav-tab" onclick="goto('trade')">🏗 Trade Coord</div>
+  <div class="nav-tab" onclick="goto('conflicts')">⚠️ Conflicts <span class="nav-badge" id="badge-conf"></span></div>
+  <div class="nav-tab" onclick="goto('inspections')">🔍 Inspections</div>
+  <div class="nav-tab" onclick="goto('trades')">🏢 Manage Trades</div>
+  <div class="nav-tab" onclick="goto('manhours')">⏱ Man Hours</div>
+</div>
+
+<!-- ══ CONTENT ══ -->
+<div class="content">
+
+  <!-- ── SUMMARY ── -->
+  <div class="section active" id="sec-summary">
+    <div class="section-header">
+      <div class="section-title">📋 Meeting Overview</div>
+      <div class="flex-gap">
+        <button class="btn btn-primary" onclick="exportSummary()">⬇ Export PDF Summary</button>
+      </div>
+    </div>
+
+    <div class="summary-grid" id="summary-stats"></div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">👥 Attendance Snapshot</div></div>
+          <div id="summary-att-list"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">💪 Manpower by Trade</div></div>
+          <table class="data-table" id="summary-mp-table">
+            <thead><tr><th>Trade</th><th>Supv</th><th>Journ</th><th>Labor</th><th>App</th><th>Safety</th><th>Total</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="card-header"><div class="card-title">⚠️ Open Conflicts</div></div>
+          <div id="summary-conflicts"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ATTENDANCE ── -->
+  <div class="section" id="sec-attendance">
+    <div class="section-header">
+      <div class="section-title">👥 Attendance</div>
+      <div class="flex-gap">
+        <button class="btn btn-ghost" onclick="toggleAddAtt()">+ Add Person</button>
+      </div>
+    </div>
+    <div class="flex-gap" style="margin-bottom:14px; font-size:12px; color:var(--text-muted)">
+      <span>Click status dots to cycle: </span>
+      <span class="badge badge-here">● Here</span>
+      <span class="badge badge-remote">● Remote/Teams</span>
+      <span class="badge badge-absent">● Absent</span>
+    </div>
+    <div class="att-grid" id="att-grid"></div>
+
+    <div class="add-form" id="add-att-form">
+      <div class="add-form-title">+ Add Attendee</div>
+      <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="new-att-name" placeholder="Name">
+        </div>
+        <div class="form-group">
+          <label>Company / Trade</label>
+          <select id="new-att-company"></select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="new-att-status">
+            <option value="here">Here</option>
+            <option value="remote">Remote / Teams</option>
+            <option value="absent">Absent</option>
+          </select>
+        </div>
+        <div class="form-group" style="justify-content:flex-end; padding-top:18px">
+          <button class="btn btn-success" onclick="addAttendee()">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MANPOWER ── -->
+  <div class="section" id="sec-manpower">
+    <div class="section-header">
+      <div class="section-title">💪 Manpower</div>
+      <button class="btn btn-ghost" onclick="addTradeMP()">+ Add Trade</button>
+    </div>
+    <div class="mp-grid" id="mp-grid"></div>
+    <div class="mp-totals-row" id="mp-totals"></div>
+  </div>
+
+  <!-- ── TRADE COORD ── -->
+  <div class="section" id="sec-trade">
+    <div class="section-header">
+      <div class="section-title">🏗 Trade Coordination</div>
+      <div class="flex-gap">
+        <span style="font-size:12px;color:var(--text-muted)">Click <strong style="color:var(--accent)">+ Add Task</strong> on any trade block below</span>
+      </div>
+    </div>
+    <div id="trade-blocks"></div>
+  </div>
+
+  <!-- ── SAFETY ── -->
+  <div class="section" id="sec-safety">
+    <div class="section-header">
+      <div class="section-title">🦺 Safety & 5S</div>
+    </div>
+
+    <div class="safety-topic-bar">
+      <div class="safety-icon">🚧</div>
+      <div>
+        <div class="safety-topic-label">Today's Safety Topic</div>
+        <div class="safety-topic-value" id="safety-topic-display">Equipment Operations</div>
+      </div>
+    </div>
+
+    <!-- JHA / Toolbox Talk -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <div class="card-title">Toolbox Talk / JHA — Mark Complete per Trade</div>
+        <div class="flex-gap">
+          <button class="btn btn-ghost btn-sm" onclick="markAllJHA()">✓ Mark All Done</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleAddJHA()" style="border-color:var(--accent);color:var(--accent)">+ Add Entry</button>
+        </div>
+      </div>
+      <div class="add-form" id="add-jha-form" style="margin:0 0 10px 0">
+        <div class="add-form-title">+ New JHA / Toolbox Talk Entry</div>
+        <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+          <div class="form-group">
+            <label>Trade</label>
+            <select id="jha-trade"></select>
+          </div>
+          <div class="form-group">
+            <label>Foreman / Supt</label>
+            <input type="text" id="jha-foreman" placeholder="Name">
+          </div>
+          <div class="form-group" style="justify-content:flex-end;padding-top:18px">
+            <button class="btn btn-success" onclick="addJHAEntry()">Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="jha-grid" id="jha-grid"></div>
+    </div>
+
+    <!-- 5S Checklist -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">5S Daily Checklist</div></div>
+      <div class="table-wrap">
+        <table class="s5-table" id="s5-table">
+          <thead>
+            <tr>
+              <th style="width:130px">5S Category</th>
+              <th>Check Item</th>
+              <th style="width:160px">Area / Trade</th>
+              <th style="width:130px">Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Safety Observations -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-header">
+        <div class="card-title">Safety Observations / Near Misses</div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAddObs()">+ Log Observation</button>
+      </div>
+      <div class="add-form" id="add-obs-form">
+        <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
+          <div class="form-group"><label>Trade</label>
+            <select id="obs-trade"></select>
+          </div>
+          <div class="form-group"><label>Observer</label><input type="text" id="obs-observer"></div>
+          <div class="form-group"><label>Type</label>
+            <select id="obs-type">
+              <option>Near Miss</option><option>Unsafe Condition</option><option>Unsafe Act</option>
+              <option>Positive Observation</option><option>Incident</option>
+            </select>
+          </div>
+          <div class="form-group wide"><label>Description</label><textarea id="obs-desc" rows="2"></textarea></div>
+          <div class="form-group wide"><label>Corrective Action</label><textarea id="obs-action" rows="2"></textarea></div>
+          <div class="form-group" style="justify-content:flex-end; padding-top:18px">
+            <button class="btn btn-success" onclick="addObservation()">Log</button>
+          </div>
+        </div>
+      </div>
+      <div id="obs-list"></div>
+    </div>
+  </div>
+
+  <!-- ── CONFLICTS ── -->
+  <div class="section" id="sec-conflicts">
+    <div class="section-header">
+      <div class="section-title">⚠️ Conflicts & Issues</div>
+      <button class="btn btn-primary" onclick="toggleAddConflict()">+ Log Conflict</button>
+    </div>
+
+    <div class="add-form" id="add-conflict-form">
+      <div class="add-form-title">+ New Conflict / Issue</div>
+      <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
+        <div class="form-group"><label>Trade</label>
+          <select id="cf-trade"></select>
+        </div>
+        <div class="form-group"><label>Location</label><input type="text" id="cf-loc" placeholder="Building / Area"></div>
+        <div class="form-group"><label>Type</label>
+          <select id="cf-type">
+            <option>RFI Pending</option><option>MEP Conflict</option><option>Embed/Relief Angle</option>
+            <option>Access Needed</option><option>Material Missing</option><option>Sequencing</option>
+            <option>Safety</option><option>Permit/Dig Permit</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Blocking?</label>
+          <select id="cf-blocking"><option value="Yes">Yes</option><option value="No">No</option><option value="Partial">Partial</option></select>
+        </div>
+        <div class="form-group full"><label>Description</label><textarea id="cf-desc" rows="2"></textarea></div>
+        <div class="form-group wide"><label>Target Resolution</label><input type="text" id="cf-res" placeholder="MM/DD or description"></div>
+        <div class="form-group" style="justify-content:flex-end; padding-top:18px">
+          <button class="btn btn-success" onclick="addConflict()">Log</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table" id="conflict-table">
+        <thead>
+          <tr>
+            <th>Trade</th><th>Location</th><th>Type</th><th>Description</th>
+            <th>Blocking?</th><th>Target Res.</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="no-conflicts" style="padding:24px; text-align:center; color:var(--text-muted); font-size:13px">
+      ✅ No open conflicts logged
+    </div>
+  </div>
+
+  <!-- ── INSPECTIONS ── -->
+  <div class="section" id="sec-inspections">
+    <div class="section-header">
+      <div class="section-title">🔍 Inspections</div>
+      <button class="btn btn-primary" onclick="toggleAddInsp()">+ Log Inspection</button>
+    </div>
+
+    <div class="add-form" id="add-insp-form">
+      <div class="add-form-title">+ New Inspection</div>
+      <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+        <div class="form-group"><label>Date</label><input type="text" id="insp-date" placeholder="MM/DD/YYYY or 'ongoing'"></div>
+        <div class="form-group"><label>Trade</label>
+          <select id="insp-trade"></select>
+        </div>
+        <div class="form-group"><label>Inspection Type</label>
+          <select id="insp-type">
+            <option>UES</option><option>Inspection</option><option>In-Wall</option><option>Overhead</option>
+            <option>Concrete</option><option>Compaction</option><option>Electrical Room</option>
+            <option>Pressure Test</option><option>Reinspection</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Location</label><input type="text" id="insp-loc" placeholder="Site / Building"></div>
+        <div class="form-group wide"><label>Notes / Time</label><input type="text" id="insp-notes"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="insp-status">
+            <option>Scheduled</option><option>In Progress</option><option>Complete</option><option>Failed</option>
+          </select>
+        </div>
+        <div class="form-group" style="justify-content:flex-end; padding-top:18px">
+          <button class="btn btn-success" onclick="addInspection()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="insp-list"></div>
+  </div>
+
+
+  <!-- ── MANAGE TRADES ── -->
+  <div class="section" id="sec-trades">
+    <div class="section-header">
+      <div class="section-title">🏢 Manage Trades</div>
+      <button class="btn btn-primary" onclick="toggleAddTrade()">+ Add Trade</button>
+    </div>
+    <div style="color:var(--text-muted);font-size:13px;margin-bottom:16px">
+      Trades added here appear in every dropdown across the entire app — Attendance, Manpower, Trade Coord, Safety, Conflicts, and Inspections.
+    </div>
+
+    <div class="add-form" id="add-trade-form">
+      <div class="add-form-title">+ New Trade</div>
+      <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+        <div class="form-group">
+          <label>Trade / Company Name</label>
+          <input type="text" id="new-trade-name" placeholder="e.g. MMR Contractors">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;padding-top:18px">
+          <button class="btn btn-success" onclick="addTrade()">Add Trade</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="trades-list"></div>
+  </div>
+
+
+  <!-- ── MAN HOURS ── -->
+  <div class="section" id="sec-manhours">
+    <div class="section-header">
+      <div class="section-title">⏱ Man Hours Log</div>
+      <div class="flex-gap">
+        <button class="btn btn-ghost" onclick="exportManHoursPDF()">⬇ Export PDF</button>
+        <button class="btn btn-primary" onclick="logTodayHours()">📌 Log Today</button>
+      </div>
+    </div>
+
+    <!-- Controls bar -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;margin:0">
+          <label style="white-space:nowrap;margin:0">Default Hrs/Worker/Day</label>
+          <input type="number" id="mh-hrs-default" value="10" min="1" max="24"
+            style="width:70px;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;font-weight:700;text-align:center"
+            onchange="saveState()">
+        </div>
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;margin:0">
+          <label style="white-space:nowrap;margin:0">Week Starting</label>
+          <input type="text" id="mh-week-start" placeholder="MM/DD/YYYY"
+            style="width:120px;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px"
+            onchange="renderManHours()">
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">
+          Click <strong style="color:var(--accent)">📌 Log Today</strong> after each meeting to capture that day's manpower as man hours.
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly summary cards -->
+    <div id="mh-weekly-summary" style="margin-bottom:16px"></div>
+
+    <!-- Daily log table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Daily Man Hour Entries</div>
+        <button class="btn btn-ghost btn-sm" onclick="clearAllMHLog()" style="color:var(--red);border-color:var(--red)">Clear All</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="mh-log-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Trade</th>
+              <th>Supervision</th>
+              <th>Journeyman</th>
+              <th>Laborers</th>
+              <th>Apprentice</th>
+              <th>Safety</th>
+              <th>Total Workers</th>
+              <th>Hrs/Worker</th>
+              <th style="color:var(--accent)">Man Hours</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="mh-log-body"></tbody>
+          <tfoot id="mh-log-foot"></tfoot>
+        </table>
+      </div>
+      <div id="mh-empty" style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">
+        No entries yet — click <strong>📌 Log Today</strong> to capture today's manpower as man hours.
+      </div>
+    </div>
+  </div>
+
+
+<!-- ══ SYNC SETUP BANNER ══ -->
+<div class="sync-banner" id="sync-banner">
+  <div class="sync-banner-title">⚡ Set Up Cloud Sync</div>
+  <div style="font-size:12px;color:var(--text-muted);flex:1;min-width:200px">
+    Paste your Google Apps Script Web App URL below to enable live sync across all devices.
+    <a href="https://script.google.com" target="_blank" style="color:var(--accent);margin-left:4px">Open script.google.com →</a>
+  </div>
+  <input type="text" id="sync-url-input" placeholder="https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec">
+  <button class="btn btn-primary" onclick="activateSync()">Activate Sync</button>
+  <button class="btn btn-ghost" onclick="dismissSyncBanner()" style="font-size:12px">Later</button>
+</div>
+
+</div><!-- /content -->
+
+<script>
+// ══════════════════════════════════════════════════════
+//  DATA STORE
+// ══════════════════════════════════════════════════════
+const today = new Date();
+const todayStr = (today.getMonth()+1).toString().padStart(2,'0') + '/' +
+                 today.getDate().toString().padStart(2,'0') + '/' + today.getFullYear();
+
+document.getElementById('hdr-date').value = todayStr;
+document.getElementById('safety-topic-display').textContent = document.getElementById('hdr-safety').value;
+document.getElementById('hdr-safety').addEventListener('input', e => {
+  document.getElementById('safety-topic-display').textContent = e.target.value;
+});
+
+const TRADE_COLORS = {
+  'Beard Construction': '#f0a500',
+  'Cajun': '#58a6ff',
+  'Equipment Share': '#3fb950',
+  'W.G. Yates': '#bc8cff',
+  'Smyth': '#ffa657',
+  'Staff Zone': '#79c0ff',
+  'Applied Digital': '#ff7b72',
+  'MMR': '#f78166',
+  'Other': '#8b949e'
+};
+
+function tradeColor(t) {
+  if(TRADE_COLORS[t]) return TRADE_COLORS[t];
+  // Auto-generate a stable, vibrant color from the trade name
+  let hash = 0;
+  for(let i=0; i<(t||'').length; i++) hash = ((hash<<5)-hash)+t.charCodeAt(i);
+  // Use golden-ratio hue steps for visual spread, keep sat/light in a good range
+  const hue = Math.abs(hash * 137.508) % 360;
+  const sat = 60 + Math.abs(hash % 20);   // 60–80%
+  const lit = 55 + Math.abs((hash>>8) % 15); // 55–70%
+  const color = `hsl(${Math.round(hue)},${sat}%,${lit}%)`;
+  TRADE_COLORS[t] = color; // cache it so it stays consistent this session
+  return color;
+}
+function tradeInitials(t) { return (t||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
+
+// ─ ATTENDANCE ─
+const attendees = [
+  {id:1, name:'Damon/Chuck/John', company:'Beard Construction', status:'here'},
+  {id:2, name:'Al/Robert/Brian/Rick', company:'Equipment Share', status:'here'},
+  {id:3, name:'James/Colton/Hunter', company:'Cajun', status:'here'},
+  {id:4, name:'Dee Anthony', company:'W.G. Yates', status:'here'},
+  {id:5, name:'Daniel Anthony', company:'W.G. Yates', status:'absent'},
+  {id:6, name:'Tennille Hartway', company:'W.G. Yates', status:'absent'},
+  {id:7, name:'Sean Rodriguez', company:'W.G. Yates', status:'absent'},
+  {id:8, name:'Max Rockwitz', company:'W.G. Yates', status:'here'},
+  {id:9, name:'Bill Myer', company:'W.G. Yates', status:'absent'},
+  {id:10, name:'Evan', company:'Staff Zone', status:'here'},
+  {id:11, name:'Aaron Prill', company:'Applied Digital', status:'remote'},
+  {id:12, name:'Algnette', company:'W.G. Yates', status:'remote'},
+  {id:13, name:'Mary Kay', company:'W.G. Yates', status:'absent'},
+  {id:14, name:'Anthony Jaime', company:'W.G. Yates', status:'absent'},
+  {id:15, name:'Carla Anthony', company:'W.G. Yates', status:'absent'},
+  {id:16, name:'Max Smyth', company:'Smyth', status:'here'},
+  {id:17, name:'Ryan Garcia', company:'W.G. Yates', status:'here'},
+  {id:18, name:'Michael Vanfossen', company:'W.G. Yates', status:'remote'},
+  {id:19, name:'Dakota Rushing', company:'Applied Digital', status:'remote'},
+  {id:20, name:'Benjamin Crosby', company:'W.G. Yates', status:'here'},
+  {id:21, name:'Barry Scearce', company:'W.G. Yates', status:'remote'},
+];
+let attNextId = 100;
+
+// ─ MANPOWER ─
+const manpower = [
+  {id:1, trade:'Beard Construction', supervision:3, journeyman:4, laborers:7, apprentice:0, safety:1},
+  {id:2, trade:'Smyth', supervision:1, journeyman:0, laborers:0, apprentice:0, safety:0},
+  {id:3, trade:'Equipment Share', supervision:4, journeyman:16, laborers:0, apprentice:0, safety:0},
+  {id:4, trade:'W.G. Yates', supervision:8, journeyman:0, laborers:0, apprentice:0, safety:0},
+  {id:5, trade:'Cajun', supervision:3, journeyman:3, laborers:5, apprentice:0, safety:2},
+  {id:6, trade:'Staff Zone', supervision:1, journeyman:0, laborers:4, apprentice:0, safety:0},
+];
+let mpNextId = 100;
+
+// ─ TASKS ─
+const tasks = [
+  {id:1, trade:'Beard Construction', foreman:'Damon/Chuck/John', area:'Site / All Areas', crew:'', tasks:'Dressing up trailer city / hauling limestone / building road to building pad 1 / starting undercut for building pad 1 / planting front grass seed', deps:'', status:'In Progress'},
+  {id:2, trade:'Equipment Share', foreman:'Irvin', area:'Site', crew:'', tasks:'Working on building break tent / running cables for transformers / AC to be complete today', deps:'', status:'In Progress'},
+  {id:3, trade:'Equipment Share', foreman:'Al', area:'Site / North', crew:'', tasks:'T-poles NE towards Bayou Bertrand', deps:'', status:'In Progress'},
+  {id:4, trade:'Cajun', foreman:'James/Colton/Trea', area:'Site / All Areas', crew:'', tasks:'Drilling / preparing to drill 18s and flipping mats', deps:'', status:'In Progress'},
+  {id:5, trade:'Smyth', foreman:'Max', area:'Site', crew:'', tasks:'Break tent / finishing stage today / finishing up barricades', deps:'', status:'In Progress'},
+  {id:6, trade:'W.G. Yates', foreman:'', area:'Site', crew:'', tasks:'UES Inspections for Cajun and Beard', deps:'', status:'In Progress'},
+];
+let taskNextId = 100;
+
+// ─ 5S ─
+const s5Items = [
+  {cat:'SORT (Seiri)', catClass:'s5-sort', item:'Remove unnecessary items from work areas', area:'All Trades', status:'✅ Pass', notes:''},
+  {cat:'SORT (Seiri)', catClass:'s5-sort', item:'Tag / remove unused tools and equipment', area:'All Trades', status:'✅ Pass', notes:''},
+  {cat:'SET IN ORDER (Seiton)', catClass:'s5-set', item:'Tools and materials stored in designated spots', area:'All Trades', status:'✅ Pass', notes:''},
+  {cat:'SET IN ORDER (Seiton)', catClass:'s5-set', item:'Pathways and emergency exits are clear', area:'All Trades', status:'✅ Pass', notes:''},
+  {cat:'SHINE (Seiso)', catClass:'s5-shine', item:'Work areas swept and debris removed', area:'All Trades', status:'✅ Pass', notes:''},
+  {cat:'SHINE (Seiso)', catClass:'s5-shine', item:'Dumpsters not overflowing, lids closed', area:'Site / GC', status:'✅ Pass', notes:''},
+  {cat:'STANDARDIZE (Seiketsu)', catClass:'s5-std', item:'5S standards posted / visible at job site', area:'W.G. Yates', status:'✅ Pass', notes:''},
+  {cat:'STANDARDIZE (Seiketsu)', catClass:'s5-std', item:'Safety signage in place and legible', area:'W.G. Yates', status:'✅ Pass', notes:''},
+  {cat:'SUSTAIN (Shitsuke)', catClass:'s5-sus', item:"Yesterday's action items resolved", area:'All Trades', status:'✅ Pass', notes:''},
+  {cat:'SUSTAIN (Shitsuke)', catClass:'s5-sus', item:'Any open 5S observations from prior day?', area:'All Trades', status:'✅ Pass', notes:''},
+];
+
+// ─ JHA ─
+const jhaItems = [
+  {trade:'Beard Construction', foreman:'Damon/Chuck/John', done:true},
+  {trade:'Equipment Share', foreman:'Al', done:true},
+  {trade:'Cajun', foreman:'James/Colton/Trea', done:true},
+  {trade:'W.G. Yates', foreman:'Daniel Anthony', done:true},
+  {trade:'Staff Zone', foreman:'Evan', done:true},
+];
+
+// ─ OBSERVATIONS ─
+const observations = [];
+
+// ─ CONFLICTS ─
+const conflicts = [];
+let cfNextId = 1;
+
+// ─ INSPECTIONS ─
+const inspections = [
+  {id:1, date:'03/17/2026', trade:'Cajun', type:'Inspection', loc:'Site', notes:'Crane Inspection — 10:00 AM', status:'Complete'},
+  {id:2, date:'ongoing', trade:'Cajun', type:'UES', loc:'Site', notes:'Ongoing', status:'In Progress'},
+  {id:3, date:'03/24/2026', trade:'Beard Construction', type:'UES', loc:'Site', notes:'Dirt samples', status:'In Progress'},
+  {id:4, date:'03/27/2026', trade:'Cajun', type:'Inspection', loc:'Site', notes:'Pipe lines', status:'In Progress'},
+];
+let inspNextId = 100;
+
+// ══════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════
+function goto(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if(name==='summary') renderSummary();
+}
+
+// ══════════════════════════════════════════════════════
+//  TIMER
+// ══════════════════════════════════════════════════════
+let timerInterval=null, timerSeconds=0, timerRunning=false;
+function toggleTimer(){
+  if(timerRunning){
+    clearInterval(timerInterval);
+    timerRunning=false;
+    document.getElementById('timer-btn').textContent='▶ Resume';
+  } else {
+    timerInterval=setInterval(tickTimer,1000);
+    timerRunning=true;
+    document.getElementById('timer-btn').textContent='⏸ Pause';
+  }
+}
+function resetTimer(){
+  clearInterval(timerInterval); timerRunning=false; timerSeconds=0;
+  document.getElementById('timer-display').textContent='00:00';
+  document.getElementById('timer-display').className='timer-display';
+  document.getElementById('timer-btn').textContent='▶ Start';
+}
+function tickTimer(){
+  timerSeconds++;
+  const m=Math.floor(timerSeconds/60), s=timerSeconds%60;
+  const el=document.getElementById('timer-display');
+  el.textContent=m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');
+  el.className='timer-display'+(timerSeconds>=1800?' over':timerSeconds>=900?' warn':'');
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER: ATTENDANCE
+// ══════════════════════════════════════════════════════
+function buildAttCard(p){
+  const col=tradeColor(p.company);
+  const statuses=['here','remote','absent'];
+  const icons=['✓','📡','—'];
+  const labels=['Here','Remote','Absent'];
+  const dotHTML=statuses.map((s,i)=>`
+    <div class="status-dot ${p.status===s?'active-'+s:''}"
+         title="${labels[i]}"
+         onclick="setAttStatus(${p.id},'${s}',event)">${icons[i]}</div>
+  `).join('');
+  const card=document.createElement('div');
+  card.className=`att-card ${p.status}`;
+  card.innerHTML=`
+    <div class="att-avatar" id="att-avatar-${p.id}" style="background:${col}22;color:${col};border:2px solid ${col}40">${tradeInitials(p.name)}</div>
+    <div class="att-info" id="att-view-${p.id}">
+      <div class="att-name">${p.name}</div>
+    </div>
+    <div class="att-info" id="att-edit-${p.id}" style="display:none">
+      <input class="att-edit-name" id="att-edit-name-${p.id}" value="${p.name}" onclick="event.stopPropagation()">
+      <select class="att-edit-company" id="att-edit-co-${p.id}" onclick="event.stopPropagation()"></select>
+    </div>
+    <div class="att-status-cycle" id="att-dots-${p.id}">${dotHTML}</div>
+    <button class="att-edit" id="att-editbtn-${p.id}" title="Edit" onclick="startEditAtt(${p.id},event)">✏</button>
+    <button class="att-save-btn" id="att-savebtn-${p.id}" title="Save" style="display:none" onclick="saveEditAtt(${p.id},event)">✓</button>
+    <button class="att-remove" id="att-rmbtn-${p.id}" title="Remove from roster" onclick="removeAttendee(${p.id},event)">✕</button>
+  `;
+  const coSel=card.querySelector(`#att-edit-co-${p.id}`);
+  if(coSel){ tradeRoster.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; if(t===p.company) o.selected=true; coSel.appendChild(o); }); }
+  return card;
+}
+
+function renderAttendance(){
+  const grid=document.getElementById('att-grid');
+  grid.innerHTML='';
+
+  // Group attendees by company, preserving tradeRoster order then any extras
+  const order=[...tradeRoster];
+  attendees.forEach(a=>{ if(!order.includes(a.company)) order.push(a.company); });
+
+  const grouped={};
+  attendees.forEach(a=>{ (grouped[a.company]=grouped[a.company]||[]).push(a); });
+
+  order.forEach(company=>{
+    const group=grouped[company];
+    if(!group) return;
+
+    // Sort within group: here → remote → absent
+    const statusOrder={here:0,remote:1,absent:2};
+    group.sort((a,b)=>(statusOrder[a.status]||0)-(statusOrder[b.status]||0));
+
+    const col=tradeColor(company);
+    const here=group.filter(p=>p.status==='here').length;
+    const remote=group.filter(p=>p.status==='remote').length;
+    const absent=group.filter(p=>p.status==='absent').length;
+    const present=here+remote;
+
+    // Trade group wrapper
+    const groupEl=document.createElement('div');
+    groupEl.style.cssText='margin-bottom:16px';
+
+    // Group header
+    const header=document.createElement('div');
+    header.style.cssText=`
+      display:flex;align-items:center;gap:10px;
+      padding:7px 12px;
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-left:3px solid ${col};
+      border-radius:var(--radius);
+      margin-bottom:4px;
+      cursor:pointer;
+      user-select:none;
+    `;
+    header.innerHTML=`
+      <span style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0"></span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:0.5px;color:${col};flex:1">${company}</span>
+      ${here?`<span class="badge badge-here" style="font-size:10px">✓ ${here}</span>`:''}
+      ${remote?`<span class="badge badge-remote" style="font-size:10px">📡 ${remote}</span>`:''}
+      ${absent?`<span class="badge badge-absent" style="font-size:10px">— ${absent}</span>`:''}
+      <span style="color:var(--text-dim);font-size:13px;margin-left:4px" class="att-group-chevron">▾</span>
+    `;
+
+    // Cards container
+    const cardsEl=document.createElement('div');
+    cardsEl.className='att-grid';
+    cardsEl.style.cssText='margin-left:12px;margin-top:2px;';
+
+    group.forEach(p=> cardsEl.appendChild(buildAttCard(p)));
+
+    // Toggle collapse on header click
+    header.addEventListener('click', ()=>{
+      const collapsed = cardsEl.style.display==='none';
+      cardsEl.style.display = collapsed ? '' : 'none';
+      header.querySelector('.att-group-chevron').textContent = collapsed ? '▾' : '▸';
+    });
+
+    groupEl.appendChild(header);
+    groupEl.appendChild(cardsEl);
+    grid.appendChild(groupEl);
+  });
+
+  // Badge
+  const present=attendees.filter(a=>a.status!=='absent').length;
+  const b=document.getElementById('badge-att');
+  b.textContent=present; b.classList.add('show');
+}
+
+function setAttStatus(id, status, e){
+  e.stopPropagation();
+  const p=attendees.find(a=>a.id===id);
+  if(p) p.status=status;
+  renderAttendance();
+  updateSummaryBadge();
+  saveState();
+}
+
+function removeAttendee(id, e){
+  e.stopPropagation();
+  const p=attendees.find(a=>a.id===id);
+  if(!p) return;
+  if(!confirm('Remove "'+p.name+'" from the roster?\n\nThis cannot be undone.')) return;
+  const i=attendees.findIndex(a=>a.id===id);
+  attendees.splice(i,1);
+  renderAttendance();
+  updateSummaryBadge();
+  saveState();
+}
+
+function startEditAtt(id, e){
+  e.stopPropagation();
+  document.getElementById('att-view-'+id).style.display='none';
+  document.getElementById('att-edit-'+id).style.display='block';
+  document.getElementById('att-dots-'+id).style.display='none';
+  document.getElementById('att-editbtn-'+id).style.display='none';
+  document.getElementById('att-savebtn-'+id).style.display='flex';
+  document.getElementById('att-rmbtn-'+id).style.display='none';
+  const inp=document.getElementById('att-edit-name-'+id);
+  if(inp){ inp.focus(); inp.select(); }
+  // Enter key saves
+  inp.onkeydown = ev => { if(ev.key==='Enter') saveEditAtt(id, ev); if(ev.key==='Escape') cancelEditAtt(id, ev); };
+}
+
+function saveEditAtt(id, e){
+  e.stopPropagation();
+  const p=attendees.find(a=>a.id===id);
+  if(!p) return;
+  const newName=(document.getElementById('att-edit-name-'+id)||{}).value||'';
+  const newCo=(document.getElementById('att-edit-co-'+id)||{}).value||'';
+  if(!newName.trim()){ alert('Name cannot be empty'); return; }
+  p.name=newName.trim();
+  p.company=newCo;
+  renderAttendance();
+  saveState();
+}
+
+function cancelEditAtt(id, e){
+  e.stopPropagation();
+  renderAttendance();
+}
+
+function toggleAddAtt(){ document.getElementById('add-att-form').classList.toggle('open'); }
+function addAttendee(){
+  const name=document.getElementById('new-att-name').value.trim();
+  if(!name) return;
+  attendees.push({
+    id:attNextId++,
+    name, 
+    company:document.getElementById('new-att-company').value,
+    status:document.getElementById('new-att-status').value
+  });
+  document.getElementById('new-att-name').value='';
+  document.getElementById('add-att-form').classList.remove('open');
+  renderAttendance();
+  saveState();
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER: MANPOWER
+// ══════════════════════════════════════════════════════
+function mpRowTotal(r){ return (r.supervision||0)+(r.journeyman||0)+(r.laborers||0)+(r.apprentice||0)+(r.safety||0); }
+
+function renderManpower(){
+  const grid=document.getElementById('mp-grid');
+  grid.innerHTML='';
+  manpower.forEach(mp=>{
+    const col=tradeColor(mp.trade);
+    const total=mpRowTotal(mp);
+    const card=document.createElement('div');
+    card.className='mp-card';
+    card.innerHTML=`
+      <div class="mp-card-header">
+        <div class="mp-trade" style="color:${col}">${mp.trade}</div>
+        <div class="mp-total">${total}</div>
+      </div>
+      <div class="mp-inputs">
+        ${['supervision','journeyman','laborers','apprentice','safety'].map(f=>`
+          <div class="mp-input-cell">
+            <div class="mp-input-label">${f==='supervision'?'Supv':f==='journeyman'?'Journ':f.charAt(0).toUpperCase()+f.slice(1)}</div>
+            <input type="number" min="0" value="${mp[f]}" onchange="updateMP(${mp.id},'${f}',this.value)">
+          </div>
+        `).join('')}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  renderMPTotals();
+}
+
+function updateMP(id,field,val){
+  const mp2=manpower.find(m=>m.id===id);
+  if(mp2){ mp2[field]=parseInt(val)||0; renderMPTotals(); renderSummaryMP(); saveState(); }
+}
+
+function renderMPTotals(){
+  const cats=['supervision','journeyman','laborers','apprentice','safety'];
+  const totals={supervision:0,journeyman:0,laborers:0,apprentice:0,safety:0};
+  manpower.forEach(m=>cats.forEach(c=>totals[c]+=(m[c]||0)));
+  const grand=Object.values(totals).reduce((a,b)=>a+b,0);
+  const el=document.getElementById('mp-totals');
+  el.innerHTML=`
+    <div class="mp-totals-label">TOTAL</div>
+    ${cats.map(c=>`
+      <div class="mp-total-cell">
+        <div class="mp-total-num">${totals[c]}</div>
+        <div class="mp-total-cat">${c==='supervision'?'Supv':c==='journeyman'?'Journ':c.charAt(0).toUpperCase()+c.slice(1)}</div>
+      </div>
+    `).join('')}
+    <div class="mp-total-cell">
+      <div class="mp-total-num" style="color:var(--accent)">${grand}</div>
+      <div class="mp-total-cat">ON SITE</div>
+    </div>
+  `;
+}
+
+function addTradeMP(){
+  const trade=prompt('Trade name:'); if(!trade) return;
+  manpower.push({id:mpNextId++,trade,supervision:0,journeyman:0,laborers:0,apprentice:0,safety:0});
+  renderManpower();
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER: TRADE COORD
+// ══════════════════════════════════════════════════════
+function taskStatusBadgeStyle(status){
+  if(status==='Complete')   return 'background:rgba(35,134,54,0.15);color:var(--green-bright);border:1px solid rgba(35,134,54,0.3)';
+  if(status==='Blocked')    return 'background:rgba(218,54,51,0.15);color:#ff7b72;border:1px solid rgba(218,54,51,0.3)';
+  if(status==='Not Started')return 'background:rgba(48,54,61,0.4);color:var(--text-muted);border:1px solid var(--border)';
+  if(status==='Needs Inspection') return 'background:rgba(210,153,34,0.15);color:#e3b341;border:1px solid rgba(210,153,34,0.3)';
+  return 'background:rgba(31,111,235,0.15);color:#79c0ff;border:1px solid rgba(31,111,235,0.3)';
+}
+
+// Render a bullet list from newline-separated text
+function renderBullets(text, color){
+  if(!text) return '<span style="color:var(--text-dim);font-size:12px">—</span>';
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(lines.length===1) return `<span style="font-size:13px;line-height:1.6">${lines[0]}</span>`;
+  return lines.map(l=>`
+    <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:3px">
+      <span style="color:${color||'var(--accent)'};font-size:10px;flex-shrink:0;margin-top:2px">●</span>
+      <span style="font-size:13px;line-height:1.5">${l}</span>
+    </div>`).join('');
+}
+
+function renderTrade(){
+  const container=document.getElementById('trade-blocks');
+  container.innerHTML='';
+
+  // Group by trade, preserving tradeRoster order
+  const order=[...tradeRoster];
+  tasks.forEach(t=>{ if(!order.includes(t.trade)) order.push(t.trade); });
+
+  // Show empty state with quick-start buttons if no tasks at all
+  if(!tasks.length){
+    container.innerHTML=`
+      <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px">
+        No tasks logged yet. Pick a trade below to add the first task.
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-bottom:16px">
+        ${tradeRoster.map(t=>`
+          <button class="btn btn-ghost" style="border-color:${tradeColor(t)};color:${tradeColor(t)};font-size:12px"
+            onclick="openQuickAdd('${t.replace(/'/g,"\\'")}')">+ ${t}</button>
+        `).join('')}
+      </div>`;
+    return;
+  }
+
+  const grouped={};
+  tasks.forEach(t=>{ (grouped[t.trade]=grouped[t.trade]||[]).push(t); });
+
+  // Trades with tasks
+  const activeTrades = order.filter(t=>grouped[t]);
+  // Trades without tasks (for quick-add footer)
+  const inactiveTrades = tradeRoster.filter(t=>!grouped[t]);
+
+  activeTrades.forEach(trade=>{
+    const tradeTaskList=grouped[trade];
+    const col=tradeColor(trade);
+    const block=document.createElement('div');
+    block.className='trade-block';
+
+    const rows=tradeTaskList.map(t=>{
+      const statusOpts=['In Progress','Not Started','Complete','Blocked','Needs Inspection']
+        .map(s=>`<option${t.status===s?' selected':''}>${s}</option>`).join('');
+      const tradeOpts=tradeRoster.map(tr=>`<option${tr===t.trade?' selected':''}>${tr}</option>`).join('');
+      return `
+      <div id="task-view-${t.id}" style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px">
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">Tasks Today</div>
+            <div>${renderBullets(t.tasks, col)}</div>
+            ${t.foreman||t.area ? `<div style="font-size:11px;color:var(--text-muted);margin-top:6px">👤 ${t.foreman||''}${t.area?' · '+t.area:''}</div>` : ''}
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px">Dependencies / Conflicts</div>
+            <div>${renderBullets(t.deps, '#8b949e')}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;white-space:nowrap;${taskStatusBadgeStyle(t.status)}">${t.status}</span>
+          <div style="flex:1"></div>
+          <button class="att-edit" title="Edit task" onclick="startTaskEdit(${t.id},event)">✏</button>
+          <button class="att-remove" title="Remove task" onclick="removeTask(${t.id},event)" style="width:24px;height:24px;font-size:13px">✕</button>
+        </div>
+      </div>
+      <div id="task-edit-${t.id}" style="display:none;padding:14px;background:var(--surface2);border:1px solid var(--accent);border-radius:var(--radius);margin:4px 0">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:10px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Trade</label>
+            <select id="te-trade-${t.id}" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:12px;padding:5px 8px;outline:none">${tradeOpts}</select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Foreman / Supt</label>
+            <input type="text" id="te-foreman-${t.id}" value="${t.foreman||''}" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:12px;padding:5px 8px;outline:none">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Location / Area</label>
+            <input type="text" id="te-area-${t.id}" value="${t.area||''}" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:12px;padding:5px 8px;outline:none">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Status</label>
+            <select id="te-status-${t.id}" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:12px;padding:5px 8px;outline:none">${statusOpts}</select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Tasks Today <span style="font-weight:400;text-transform:none;letter-spacing:0">(one per line)</span></label>
+            <textarea id="te-tasks-${t.id}" rows="4" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:12px;padding:5px 8px;resize:vertical;outline:none;line-height:1.7">${t.tasks||''}</textarea>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Dependencies / Conflicts <span style="font-weight:400;text-transform:none;letter-spacing:0">(one per line)</span></label>
+            <textarea id="te-deps-${t.id}" rows="4" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:12px;padding:5px 8px;resize:vertical;outline:none;line-height:1.7">${t.deps||''}</textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="cancelTaskEdit(${t.id})">Cancel</button>
+          <button class="btn btn-success" style="font-size:12px;padding:5px 14px" onclick="saveTaskEdit(${t.id})">✓ Save</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Inline quick-add form for this trade
+    const qaId = 'qa-'+trade.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+    block.innerHTML=`
+      <div class="trade-block-header" onclick="toggleBlock(this)">
+        <div class="trade-block-title" style="color:${col}">
+          <span class="color-dot" style="background:${col}"></span>
+          ${trade}
+          <span style="font-size:12px;font-weight:400;color:var(--text-muted)">
+            ${tradeTaskList[0]?.foreman ? '— '+tradeTaskList[0].foreman : ''}
+            ${tradeTaskList[0]?.area ? '· '+tradeTaskList[0].area : ''}
+          </span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px" onclick="event.stopPropagation()">
+          <button class="btn-sm" style="border-color:${col};color:${col};font-size:11px;padding:3px 9px"
+            onclick="toggleQuickAdd('${qaId}')">+ Add Task</button>
+          <span style="color:var(--text-muted);font-size:16px">▾</span>
+        </div>
+      </div>
+      <div id="${qaId}" style="display:none;background:var(--surface2);border-bottom:1px solid var(--border);padding:12px 16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Tasks Today <span style="font-weight:400;text-transform:none">(one per line — press Enter for next)</span></label>
+            <textarea id="${qaId}-tasks" rows="3" placeholder="Type a task and press Enter for the next one..."
+              style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:13px;padding:7px 10px;resize:vertical;outline:none;line-height:1.7"></textarea>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Dependencies / Conflicts <span style="font-weight:400;text-transform:none">(one per line)</span></label>
+            <textarea id="${qaId}-deps" rows="3" placeholder="Any blockers or dependencies..."
+              style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:13px;padding:7px 10px;resize:vertical;outline:none;line-height:1.7"></textarea>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:12px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Foreman / Supt</label>
+            <input type="text" id="${qaId}-foreman" placeholder="Name"
+              style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:13px;padding:6px 10px;outline:none">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Location / Area</label>
+            <input type="text" id="${qaId}-area" placeholder="Site / Building / Area"
+              style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:13px;padding:6px 10px;outline:none">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px">Status</label>
+            <select id="${qaId}-status"
+              style="background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:Barlow,sans-serif;font-size:13px;padding:6px 10px;outline:none">
+              <option>In Progress</option><option>Not Started</option><option>Complete</option>
+              <option>Blocked</option><option>Needs Inspection</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px">
+            <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;flex:1" onclick="toggleQuickAdd('${qaId}')">Cancel</button>
+            <button class="btn btn-success" style="font-size:12px;padding:6px 14px;flex:1" onclick="submitQuickAdd('${qaId}','${trade.replace(/'/g,"\\'")}')">✓ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="trade-block-body">${rows}</div>
+    `;
+    container.appendChild(block);
+  });
+
+  // Footer: quick-add buttons for trades not yet on the board
+  if(inactiveTrades.length){
+    const footer=document.createElement('div');
+    footer.style.cssText='margin-top:16px;padding-top:14px;border-top:1px solid var(--border)';
+    footer.innerHTML=`
+      <div style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Add a trade to today's board:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${inactiveTrades.map(t=>`
+          <button class="btn btn-ghost" style="border-color:${tradeColor(t)};color:${tradeColor(t)};font-size:12px;padding:5px 12px"
+            onclick="openQuickAdd('${t.replace(/'/g,"\\'")}')">+ ${t}</button>
+        `).join('')}
+      </div>`;
+    container.appendChild(footer);
+  }
+}
+
+function toggleBlock(header){
+  const body = header.nextElementSibling.nextElementSibling; // skip the qa form div
+  body.style.display = body.style.display==='none' ? '' : 'none';
+}
+
+function toggleQuickAdd(qaId){
+  const el=document.getElementById(qaId);
+  if(!el) return;
+  const open = el.style.display==='none';
+  el.style.display = open ? 'block' : 'none';
+  if(open){
+    const ta=document.getElementById(qaId+'-tasks');
+    if(ta) setTimeout(()=>ta.focus(), 50);
+  }
+}
+
+function openQuickAdd(trade){
+  // If trade block exists, open its qa form; otherwise add a blank task first
+  const qaId='qa-'+trade.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+  const el=document.getElementById(qaId);
+  if(el){
+    el.style.display='block';
+    const ta=document.getElementById(qaId+'-tasks');
+    if(ta) setTimeout(()=>ta.focus(),50);
+  } else {
+    // Trade not yet on board — create a placeholder task to get it on screen, then open edit
+    tasks.push({
+      id:taskNextId++, trade, foreman:'', area:'', crew:'',
+      tasks:'', deps:'', status:'In Progress'
+    });
+    renderTrade();
+    setTimeout(()=>openQuickAdd(trade), 50);
+  }
+}
+
+function submitQuickAdd(qaId, trade){
+  const tasksVal=(document.getElementById(qaId+'-tasks')||{}).value||'';
+  const depsVal =(document.getElementById(qaId+'-deps')||{}).value||'';
+  const foreman =(document.getElementById(qaId+'-foreman')||{}).value.trim();
+  const area    =(document.getElementById(qaId+'-area')||{}).value.trim();
+  const status  =(document.getElementById(qaId+'-status')||{}).value||'In Progress';
+  if(!tasksVal.trim()){ alert('Please enter at least one task.'); return; }
+  tasks.push({ id:taskNextId++, trade, foreman, area, crew:'', tasks:tasksVal.trim(), deps:depsVal.trim(), status });
+  renderTrade();
+  saveState();
+}
+
+function startTaskEdit(id, e){
+  e.stopPropagation();
+  document.querySelectorAll('[id^="task-edit-"]').forEach(el=>el.style.display='none');
+  document.querySelectorAll('[id^="task-view-"]').forEach(el=>el.style.display='');
+  document.getElementById('task-view-'+id).style.display='none';
+  document.getElementById('task-edit-'+id).style.display='block';
+  const ta=document.getElementById('te-tasks-'+id);
+  if(ta){ ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length); }
+}
+
+function saveTaskEdit(id){
+  const t=tasks.find(x=>x.id===id); if(!t) return;
+  t.trade  =(document.getElementById('te-trade-'+id)||{}).value||t.trade;
+  t.foreman=(document.getElementById('te-foreman-'+id)||{}).value.trim();
+  t.area   =(document.getElementById('te-area-'+id)||{}).value.trim();
+  t.status =(document.getElementById('te-status-'+id)||{}).value||t.status;
+  t.tasks  =(document.getElementById('te-tasks-'+id)||{}).value.trim();
+  t.deps   =(document.getElementById('te-deps-'+id)||{}).value.trim();
+  renderTrade();
+  saveState();
+}
+
+function cancelTaskEdit(id){
+  document.getElementById('task-edit-'+id).style.display='none';
+  document.getElementById('task-view-'+id).style.display='';
+}
+
+function updateTaskStatus(id,status){ const t=tasks.find(x=>x.id===id); if(t){ t.status=status; saveState(); } }
+function removeTask(id,e){ if(e) e.stopPropagation(); if(!confirm('Remove this task? This cannot be undone.')) return; const i=tasks.findIndex(x=>x.id===id); if(i>-1){ tasks.splice(i,1); renderTrade(); saveState(); } }
+function toggleAddTask(){ /* legacy no-op */ }
+
+function addTask(){
+  tasks.push({
+    id:taskNextId++,
+    trade:document.getElementById('task-trade').value,
+    foreman:document.getElementById('task-foreman').value,
+    area:document.getElementById('task-area').value,
+    crew:document.getElementById('task-crew').value,
+    tasks:document.getElementById('task-tasks').value,
+    deps:document.getElementById('task-deps').value,
+    status:document.getElementById('task-status').value,
+  });
+  ['task-foreman','task-area','task-crew','task-tasks','task-deps'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('add-task-form').classList.remove('open');
+  renderTrade();
+  saveState();
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER: SAFETY
+// ══════════════════════════════════════════════════════
+function renderSafety(){
+  // JHA
+  const jhaGrid=document.getElementById('jha-grid');
+  jhaGrid.innerHTML='';
+  // populate the add-form trade dropdown
+  const jhaTradeEl=document.getElementById('jha-trade');
+  if(jhaTradeEl){ jhaTradeEl.innerHTML=tradeRoster.map(t=>`<option>${t}</option>`).join(''); }
+  jhaItems.forEach((j,i)=>{
+    jhaGrid.innerHTML+=`
+      <div class="jha-card" id="jha-card-${i}">
+        <div id="jha-view-${i}" style="flex:1;min-width:0">
+          <div class="jha-trade" style="color:${tradeColor(j.trade)}">${j.trade}</div>
+          <div class="jha-foreman">${j.foreman||'—'}</div>
+        </div>
+        <div id="jha-edit-${i}" style="flex:1;min-width:0;display:none">
+          <select id="jha-edit-trade-${i}" style="font-size:12px;padding:3px 6px;background:var(--surface2);border:1px solid var(--accent);border-radius:4px;color:var(--text);width:100%;margin-bottom:4px">
+            ${tradeRoster.map(t=>`<option${t===j.trade?' selected':''}>${t}</option>`).join('')}
+          </select>
+          <input id="jha-edit-foreman-${i}" type="text" value="${j.foreman||''}" placeholder="Foreman name"
+            style="font-size:11px;padding:2px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);width:100%;font-family:Barlow,sans-serif"
+            onkeydown="if(event.key==='Enter')saveJHAEdit(${i},event);if(event.key==='Escape')cancelJHAEdit(${i})">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <div id="jha-check-${i}" class="jha-check ${j.done?'done':''}" onclick="toggleJHA(${i})">${j.done?'✓':''}</div>
+          <button class="att-edit" id="jha-editbtn-${i}" title="Edit" onclick="startJHAEdit(${i},event)" style="margin-left:2px">✏</button>
+          <button class="att-save-btn" id="jha-savebtn-${i}" title="Save" style="display:none" onclick="saveJHAEdit(${i},event)">✓</button>
+          <button class="att-remove" id="jha-rmbtn-${i}" title="Remove" onclick="removeJHAEntry(${i},event)" style="width:22px;height:22px;font-size:13px">✕</button>
+        </div>
+      </div>`;
+  });
+  // 5S
+  const tbody=document.querySelector('#s5-table tbody');
+  tbody.innerHTML='';
+  s5Items.forEach((item,i)=>{
+    const statusOptions=['✅ Pass','⚠ Needs Attention','❌ Fail','N/A'].map(s=>
+      `<option ${item.status===s?'selected':''}>${s}</option>`).join('');
+    tbody.innerHTML+=`<tr>
+      <td><span class="s5-pill ${item.catClass}">${item.cat}</span></td>
+      <td>${item.item}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${item.area}</td>
+      <td><select onchange="updateS5(${i},this.value)" style="font-size:12px;padding:3px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">${statusOptions}</select></td>
+      <td><input type="text" value="${item.notes}" placeholder="Notes..." onchange="updateS5Notes(${i},this.value)" style="font-size:12px;padding:3px 8px;background:transparent;border:1px solid transparent;border-radius:4px;color:var(--text-muted);width:100%" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='transparent'"></td>
+    </tr>`;
+  });
+}
+function toggleJHA(i){ jhaItems[i].done=!jhaItems[i].done; renderSafety(); saveState(); }
+function markAllJHA(){ jhaItems.forEach(j=>j.done=true); renderSafety(); saveState(); }
+
+function toggleAddJHA(){ document.getElementById('add-jha-form').classList.toggle('open'); }
+
+function addJHAEntry(){
+  const trade=(document.getElementById('jha-trade')||{}).value||'';
+  const foreman=(document.getElementById('jha-foreman')||{}).value.trim();
+  if(!trade){ alert('Please select a trade'); return; }
+  jhaItems.push({ trade, foreman, done:false });
+  document.getElementById('jha-foreman').value='';
+  document.getElementById('add-jha-form').classList.remove('open');
+  renderSafety();
+  saveState();
+}
+
+function startJHAEdit(i, e){
+  e.stopPropagation();
+  document.getElementById('jha-view-'+i).style.display='none';
+  document.getElementById('jha-edit-'+i).style.display='block';
+  document.getElementById('jha-check-'+i).style.display='none';
+  document.getElementById('jha-editbtn-'+i).style.display='none';
+  document.getElementById('jha-savebtn-'+i).style.display='flex';
+  document.getElementById('jha-rmbtn-'+i).style.display='none';
+  const inp=document.getElementById('jha-edit-foreman-'+i);
+  if(inp){ inp.focus(); inp.select(); }
+}
+
+function saveJHAEdit(i, e){
+  if(e) e.stopPropagation();
+  const trade=(document.getElementById('jha-edit-trade-'+i)||{}).value||'';
+  const foreman=(document.getElementById('jha-edit-foreman-'+i)||{}).value.trim();
+  if(!trade) return;
+  jhaItems[i].trade=trade;
+  jhaItems[i].foreman=foreman;
+  renderSafety();
+  saveState();
+}
+
+function cancelJHAEdit(i){
+  renderSafety();
+}
+
+function removeJHAEntry(i, e){
+  e.stopPropagation();
+  if(!confirm('Remove "'+jhaItems[i].trade+'" from the JHA list?')) return;
+  jhaItems.splice(i,1);
+  renderSafety();
+  saveState();
+}
+function updateS5(i,val){ s5Items[i].status=val; }
+function updateS5Notes(i,val){ s5Items[i].notes=val; }
+
+function toggleAddObs(){ document.getElementById('add-obs-form').classList.toggle('open'); }
+function addObservation(){
+  observations.push({
+    trade:document.getElementById('obs-trade').value,
+    observer:document.getElementById('obs-observer').value,
+    type:document.getElementById('obs-type').value,
+    desc:document.getElementById('obs-desc').value,
+    action:document.getElementById('obs-action').value,
+    status:'Open'
+  });
+  document.getElementById('obs-observer').value='';
+  document.getElementById('obs-desc').value='';
+  document.getElementById('obs-action').value='';
+  document.getElementById('add-obs-form').classList.remove('open');
+  renderObservations();
+}
+function renderObservations(){
+  const el=document.getElementById('obs-list');
+  if(!observations.length){ el.innerHTML='<div style="padding:14px;color:var(--text-muted);font-size:13px">No observations logged</div>'; return; }
+  el.innerHTML=observations.map((o,i)=>`
+    <div style="padding:10px 14px;border-top:1px solid var(--border)">
+      <div class="flex-gap">
+        <span style="font-weight:700;font-size:13px;color:${tradeColor(o.trade)}">${o.trade}</span>
+        <span class="badge badge-pending">${o.type}</span>
+        <span style="font-size:11px;color:var(--text-muted)">${o.observer}</span>
+      </div>
+      <div style="font-size:13px;margin-top:4px">${o.desc}</div>
+      ${o.action?`<div style="font-size:12px;color:var(--text-muted);margin-top:3px">→ ${o.action}</div>`:''}
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER: CONFLICTS
+// ══════════════════════════════════════════════════════
+function renderConflicts(){
+  const tbody=document.querySelector('#conflict-table tbody');
+  const noConf=document.getElementById('no-conflicts');
+  tbody.innerHTML='';
+  if(!conflicts.length){ noConf.style.display='block'; document.getElementById('conflict-table').style.display='none'; return; }
+  noConf.style.display='none';
+  document.getElementById('conflict-table').style.display='table';
+  conflicts.forEach(c=>{
+    const blockBadge=c.blocking==='Yes'?'badge-blocked':c.blocking==='Partial'?'badge-pending':'badge-here';
+    tbody.innerHTML+=`<tr>
+      <td style="font-weight:600;color:${tradeColor(c.trade)}">${c.trade}</td>
+      <td style="font-size:12px">${c.loc}</td>
+      <td><span class="badge badge-pending">${c.type}</span></td>
+      <td style="font-size:12px">${c.desc}</td>
+      <td><span class="badge ${blockBadge}">${c.blocking}</span></td>
+      <td style="font-size:12px;color:var(--text-muted)">${c.res}</td>
+      <td><select onchange="updateConflictStatus(${c.id},this.value)" style="font-size:12px;padding:3px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+        ${['Open','In Progress','Resolved'].map(s=>`<option ${c.status===s?'selected':''}>${s}</option>`).join('')}
+      </select></td>
+      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="resolveConflict(${c.id})" style="font-size:11px">✓ Resolve</button> <button class="btn btn-danger btn-sm" onclick="removeConflict(${c.id})" style="font-size:11px">✕</button></td>
+    </tr>`;
+  });
+  const b=document.getElementById('badge-conf');
+  const open=conflicts.filter(c=>c.status!=='Resolved').length;
+  b.textContent=open; b.className=open?'nav-badge show':'nav-badge';
+}
+function updateConflictStatus(id,status){ const c=conflicts.find(x=>x.id===id); if(c){ c.status=status; renderConflicts(); } }
+function resolveConflict(id){ updateConflictStatus(id,'Resolved'); }
+function toggleAddConflict(){ document.getElementById('add-conflict-form').classList.toggle('open'); }
+function addConflict(){
+  const desc=document.getElementById('cf-desc').value.trim();
+  if(!desc){ alert('Please enter a description'); return; }
+  conflicts.push({
+    id:cfNextId++,
+    trade:document.getElementById('cf-trade').value,
+    loc:document.getElementById('cf-loc').value,
+    type:document.getElementById('cf-type').value,
+    blocking:document.getElementById('cf-blocking').value,
+    desc,
+    res:document.getElementById('cf-res').value,
+    status:'Open'
+  });
+  ['cf-loc','cf-desc','cf-res'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('add-conflict-form').classList.remove('open');
+  renderConflicts();
+  saveState();
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER: INSPECTIONS
+// ══════════════════════════════════════════════════════
+function renderInspections(){
+  const el=document.getElementById('insp-list');
+  el.innerHTML=inspections.map(insp=>{
+    const statusClass=insp.status==='Complete'?'badge-complete':insp.status==='Failed'?'badge-blocked':insp.status==='Scheduled'?'badge-pending':'badge-progress';
+    return `
+    <div class="insp-card" style="border-left-color:${tradeColor(insp.trade)}">
+      <div class="insp-date">${insp.date}</div>
+      <div class="insp-info">
+        <div class="insp-type">${insp.type} <span style="font-weight:400;color:var(--text-muted)">· ${insp.trade}</span></div>
+        <div class="insp-notes">${insp.notes} ${insp.loc?'· '+insp.loc:''}</div>
+      </div>
+      <span class="badge ${statusClass}">${insp.status}</span>
+      <select onchange="updateInspStatus(${insp.id},this.value)" style="font-size:12px;padding:3px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+        ${['Scheduled','In Progress','Complete','Failed'].map(s=>`<option ${insp.status===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <button class="att-remove" title="Remove inspection" onclick="removeInspection(${insp.id})" style="width:26px;height:26px;font-size:14px">✕</button>
+    </div>`;
+  }).join('');
+}
+function updateInspStatus(id,status){ const insp=inspections.find(x=>x.id===id); if(insp){ insp.status=status; renderInspections(); } }
+function toggleAddInsp(){ document.getElementById('add-insp-form').classList.toggle('open'); }
+function addInspection(){
+  inspections.push({
+    id:inspNextId++,
+    date:document.getElementById('insp-date').value||todayStr,
+    trade:document.getElementById('insp-trade').value,
+    type:document.getElementById('insp-type').value,
+    loc:document.getElementById('insp-loc').value,
+    notes:document.getElementById('insp-notes').value,
+    status:document.getElementById('insp-status').value,
+  });
+  ['insp-date','insp-loc','insp-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('add-insp-form').classList.remove('open');
+  renderInspections();
+  saveState();
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER: SUMMARY
+// ══════════════════════════════════════════════════════
+function updateSummaryBadge(){
+  const present=attendees.filter(a=>a.status!=='absent').length;
+  const b=document.getElementById('badge-att');
+  b.textContent=present; b.classList.add('show');
+}
+
+function renderSummaryMP(){
+  const tbody=document.querySelector('#summary-mp-table tbody');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  let totS=0,totJ=0,totL=0,totA=0,totSf=0;
+  manpower.forEach(m=>{
+    const total=mpRowTotal(m);
+    const col=tradeColor(m.trade);
+    tbody.innerHTML+=`<tr>
+      <td style="font-weight:600;color:${col};font-size:13px">${m.trade}</td>
+      <td style="text-align:center">${m.supervision||0}</td>
+      <td style="text-align:center">${m.journeyman||0}</td>
+      <td style="text-align:center">${m.laborers||0}</td>
+      <td style="text-align:center">${m.apprentice||0}</td>
+      <td style="text-align:center">${m.safety||0}</td>
+      <td style="text-align:center;font-weight:700">${total}</td>
+    </tr>`;
+    totS+=m.supervision||0; totJ+=m.journeyman||0; totL+=m.laborers||0;
+    totA+=m.apprentice||0; totSf+=m.safety||0;
+  });
+  tbody.innerHTML+=`<tr style="background:var(--surface2);font-weight:700">
+    <td style="color:var(--accent)">TOTAL</td>
+    <td style="text-align:center">${totS}</td>
+    <td style="text-align:center">${totJ}</td>
+    <td style="text-align:center">${totL}</td>
+    <td style="text-align:center">${totA}</td>
+    <td style="text-align:center">${totSf}</td>
+    <td style="text-align:center;color:var(--accent)">${totS+totJ+totL+totA+totSf}</td>
+  </tr>`;
+}
+
+function renderSummary(){
+  const present=attendees.filter(a=>a.status!=='absent').length;
+  const remote=attendees.filter(a=>a.status==='remote').length;
+  const total=manpower.reduce((s,m)=>s+mpRowTotal(m),0);
+  const openConflicts=conflicts.filter(c=>c.status!=='Resolved').length;
+  const openInsp=inspections.filter(i=>i.status!=='Complete').length;
+
+  document.getElementById('summary-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Present</div><div class="stat-value">${present}</div><div class="stat-sub">${remote} remote / teams</div></div>
+    <div class="stat-card"><div class="stat-label">On Site Today</div><div class="stat-value">${total}</div><div class="stat-sub">Total manpower</div></div>
+    <div class="stat-card"><div class="stat-label">Trades Active</div><div class="stat-value">${manpower.filter(m=>mpRowTotal(m)>0).length}</div><div class="stat-sub">of ${manpower.length} on roster</div></div>
+    <div class="stat-card"><div class="stat-label">Open Conflicts</div><div class="stat-value" style="color:${openConflicts>0?'var(--red)':'var(--green-bright)'}">${openConflicts}</div><div class="stat-sub">${openConflicts>0?'Requires attention':'All clear'}</div></div>
+    <div class="stat-card"><div class="stat-label">Open Inspections</div><div class="stat-value" style="color:${openInsp>0?'var(--yellow)':'var(--green-bright)'}">${openInsp}</div><div class="stat-sub">pending completion</div></div>
+    <div class="stat-card"><div class="stat-label">Safety Topic</div><div class="stat-value" style="font-size:18px;line-height:1.2">${document.getElementById('hdr-safety').value||'—'}</div></div>
+  `;
+
+  // Attendance by company
+  const byCompany={};
+  attendees.forEach(a=>{ (byCompany[a.company]=byCompany[a.company]||{here:0,remote:0,absent:0})[a.status]++; });
+  document.getElementById('summary-att-list').innerHTML=Object.entries(byCompany).map(([co,counts])=>{
+    const col=tradeColor(co);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="width:10px;height:10px;border-radius:50%;background:${col};flex-shrink:0"></div>
+      <div style="flex:1;font-weight:600;font-size:13px">${co}</div>
+      ${counts.here?`<span class="badge badge-here">✓ ${counts.here}</span>`:''}
+      ${counts.remote?`<span class="badge badge-remote">📡 ${counts.remote}</span>`:''}
+      ${counts.absent?`<span class="badge badge-absent">— ${counts.absent}</span>`:''}
+    </div>`;
+  }).join('');
+
+  renderSummaryMP();
+
+  // Conflicts
+  const confEl=document.getElementById('summary-conflicts');
+  if(!conflicts.filter(c=>c.status!=='Resolved').length){
+    confEl.innerHTML='<div style="padding:10px;color:var(--text-muted);font-size:12px">✅ No open conflicts</div>';
+  } else {
+    confEl.innerHTML=conflicts.filter(c=>c.status!=='Resolved').map(c=>`
+      <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-weight:600;font-size:12px;color:${tradeColor(c.trade)}">${c.trade} · ${c.type}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${c.desc}</div>
+        ${c.blocking==='Yes'?'<span class="badge badge-blocked" style="margin-top:3px">🚫 Blocking</span>':''}
+      </div>
+    `).join('');
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  EXPORT SUMMARY — PDF via print dialog
+// ══════════════════════════════════════════════════════
+function exportSummary(){
+  const date     = document.getElementById('hdr-date').value;
+  const fac      = document.getElementById('hdr-facilitator').value;
+  const topic    = document.getElementById('hdr-safety').value;
+  const present  = attendees.filter(a=>a.status!=='absent').length;
+  const remote   = attendees.filter(a=>a.status==='remote').length;
+  const grandTotal = manpower.reduce((s,m)=>s+mpRowTotal(m),0);
+  const openConf = conflicts.filter(c=>c.status!=='Resolved');
+  const openInsp = inspections.filter(i=>i.status!=='Complete' && i.status!=='Failed');
+
+  // ── helpers ──
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const tc  = t => tradeColor(t);
+
+  // ── attendance by company ──
+  const byCompany = {};
+  attendees.forEach(a=>{ (byCompany[a.company]=byCompany[a.company]||{here:[],remote:[],absent:[]})[a.status].push(a.name); });
+  const attRows = Object.entries(byCompany).map(([co,g])=>{
+    const col = tc(co);
+    const present_names = [...g.here,...g.remote];
+    const absent_names  = g.absent;
+    return `<tr>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-weight:600;color:${col}">${esc(co)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:11px">${present_names.map(n=>`<span style="display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;border-radius:3px;padding:1px 5px;margin:1px;font-size:10px">${esc(n)}</span>`).join('')||'—'}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;color:#9ca3af">${absent_names.map(n=>`<span style="display:inline-block;background:#f9fafb;border:1px solid #e5e7eb;color:#9ca3af;border-radius:3px;padding:1px 5px;margin:1px;font-size:10px">${esc(n)}</span>`).join('')||'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // ── manpower table ──
+  const cats = ['supervision','journeyman','laborers','apprentice','safety'];
+  let totS=0,totJ=0,totL=0,totA=0,totSf=0;
+  const mpRows = manpower.map(m=>{
+    const t=mpRowTotal(m); totS+=m.supervision||0; totJ+=m.journeyman||0; totL+=m.laborers||0; totA+=m.apprentice||0; totSf+=m.safety||0;
+    const col=tc(m.trade);
+    return `<tr>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-weight:600;color:${col}">${esc(m.trade)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:center">${m.supervision||0}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:center">${m.journeyman||0}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:center">${m.laborers||0}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:center">${m.apprentice||0}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:center">${m.safety||0}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:700">${t}</td>
+    </tr>`;
+  }).join('');
+  const mpTotal = `<tr style="background:#f9fafb;font-weight:700">
+    <td style="padding:6px 10px;color:#d97706">TOTAL ON SITE</td>
+    <td style="padding:6px 10px;text-align:center">${totS}</td>
+    <td style="padding:6px 10px;text-align:center">${totJ}</td>
+    <td style="padding:6px 10px;text-align:center">${totL}</td>
+    <td style="padding:6px 10px;text-align:center">${totA}</td>
+    <td style="padding:6px 10px;text-align:center">${totSf}</td>
+    <td style="padding:6px 10px;text-align:center;color:#d97706;font-size:15px">${grandTotal}</td>
+  </tr>`;
+
+  // ── trade tasks ──
+  // Helper: render newline-separated items as PDF bullet list
+  function pdfBullets(text, bulletColor, fallback){
+    if(!text || !text.trim()) return `<span style="color:#9ca3af;font-size:11px">${fallback||'—'}</span>`;
+    const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+    if(lines.length===1) return `<span style="font-size:11px">${esc(lines[0])}</span>`;
+    return lines.map(l=>`
+      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px">
+        <span style="color:${bulletColor};font-size:9px;flex-shrink:0">●</span>
+        <span style="font-size:11px;line-height:1.5">${esc(l)}</span>
+      </div>`).join('');
+  }
+
+  function pdfStatusBadge(status){
+    const map = {
+      'Complete':        {bg:'#f0fdf4',color:'#15803d'},
+      'Blocked':         {bg:'#fef2f2',color:'#dc2626'},
+      'Not Started':     {bg:'#f9fafb',color:'#6b7280'},
+      'Needs Inspection':{bg:'#fffbeb',color:'#d97706'},
+    };
+    const s = map[status] || {bg:'#eff6ff',color:'#1d4ed8'};
+    return `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:${s.bg};color:${s.color};white-space:nowrap;border:1px solid ${s.color}33">${esc(status)}</span>`;
+  }
+
+  const grouped = {};
+  tasks.forEach(t=>{ (grouped[t.trade]=grouped[t.trade]||[]).push(t); });
+
+  const taskBlocks = Object.entries(grouped).map(([trade,list])=>{
+    const col=tc(trade);
+
+    const taskRows = list.map((t,idx)=>{
+      const isLast = idx===list.length-1;
+      const borderStyle = isLast ? '' : 'border-bottom:1px solid #f3f4f6;';
+      const meta = [t.foreman, t.area].filter(Boolean).join(' · ');
+      return `
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;padding:10px 0;${borderStyle}align-items:start">
+        <div>
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:0.5px;margin-bottom:5px">Tasks Today</div>
+          ${pdfBullets(t.tasks, col)}
+          ${meta ? `<div style="font-size:10px;color:#9ca3af;margin-top:5px">👤 ${esc(meta)}</div>` : ''}
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:0.5px;margin-bottom:5px">Dependencies / Conflicts</div>
+          ${pdfBullets(t.deps, '#9ca3af', 'None')}
+        </div>
+        <div style="padding-top:18px">
+          ${pdfStatusBadge(t.status)}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div style="margin-bottom:14px;break-inside:avoid;border:1px solid #e5e7eb;border-radius:5px;overflow:hidden">
+      <div style="background:${col}18;border-left:4px solid ${col};padding:7px 12px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-weight:800;font-size:12px;color:${col};text-transform:uppercase;letter-spacing:0.5px">${esc(trade)}</span>
+        ${list[0]&&list[0].foreman ? `<span style="font-size:10px;color:#6b7280">${esc(list[0].foreman)}${list[0].area?' · '+esc(list[0].area):''}</span>` : ''}
+      </div>
+      <div style="padding:0 12px">${taskRows}</div>
+    </div>`;
+  }).join('');
+
+  // ── JHA ──
+  const jhaRows = jhaItems.map(j=>`
+    <tr>
+      <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;font-weight:600;font-size:12px;color:${tc(j.trade)}">${esc(j.trade)}</td>
+      <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#6b7280">${esc(j.foreman)}</td>
+      <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center">
+        <span style="font-size:14px">${j.done?'✅':'⬜'}</span>
+      </td>
+    </tr>`).join('');
+
+  // ── 5S summary ──
+  const fails5s   = s5Items.filter(i=>i.status==='❌ Fail');
+  const warns5s   = s5Items.filter(i=>i.status==='⚠ Needs Attention');
+  const s5Summary = fails5s.length===0&&warns5s.length===0
+    ? `<p style="color:#15803d;font-weight:600;font-size:12px">✅ All 5S checks passed</p>`
+    : [...fails5s.map(i=>`<div style="color:#dc2626;font-size:11px;margin-bottom:3px">❌ ${esc(i.item)} (${esc(i.area)})</div>`),
+       ...warns5s.map(i=>`<div style="color:#d97706;font-size:11px;margin-bottom:3px">⚠ ${esc(i.item)} (${esc(i.area)})</div>`)].join('');
+
+  // ── conflicts ──
+  const confSection = openConf.length===0
+    ? `<p style="color:#15803d;font-size:12px;font-weight:600">✅ No open conflicts</p>`
+    : `<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#f3f4f6">
+          <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Trade</th>
+          <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Type</th>
+          <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Description</th>
+          <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Blocking</th>
+          <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Target Res.</th>
+        </tr></thead>
+        <tbody>${openConf.map(c=>`<tr>
+          <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;font-weight:600;color:${tc(c.trade)}">${esc(c.trade)}</td>
+          <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6">${esc(c.type)}</td>
+          <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6">${esc(c.desc)}</td>
+          <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6"><span style="font-weight:700;color:${c.blocking==='Yes'?'#dc2626':c.blocking==='Partial'?'#d97706':'#15803d'}">${esc(c.blocking)}</span></td>
+          <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;color:#6b7280">${esc(c.res)||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+
+  // ── inspections ──
+  const inspSection = openInsp.length===0
+    ? `<p style="color:#15803d;font-size:12px;font-weight:600">✅ No open inspections</p>`
+    : `<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#f3f4f6">
+          <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Date</th>
+          <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Trade</th>
+          <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Type</th>
+          <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Notes</th>
+          <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Status</th>
+        </tr></thead>
+        <tbody>${openInsp.map(i=>`<tr>
+          <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;color:#6b7280">${esc(i.date)}</td>
+          <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;font-weight:600;color:${tc(i.trade)}">${esc(i.trade)}</td>
+          <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6">${esc(i.type)}</td>
+          <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6">${esc(i.notes)}</td>
+          <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6"><span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:#eff6ff;color:#1d4ed8">${esc(i.status)}</span></td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+
+  // ── section wrapper helper ──
+  const sec = (title, accent, body) => `
+    <div style="margin-bottom:20px;break-inside:avoid">
+      <div style="background:${accent};color:#fff;padding:7px 14px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;border-radius:4px 4px 0 0">${title}</div>
+      <div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 4px 4px;padding:12px 14px">${body}</div>
+    </div>`;
+
+  // ── stat pill ──
+  const pill = (label, value, color) =>
+    `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 16px;text-align:center;min-width:100px">
+       <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:0.5px">${label}</div>
+       <div style="font-size:26px;font-weight:800;color:${color||'#d97706'};line-height:1.2">${value}</div>
+     </div>`;
+
+  // ── build HTML ──
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>AEX Meeting Summary — ${esc(date)}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Arial', sans-serif; font-size: 13px; color: #111827; background: #fff; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+    @page { margin: 0.6in 0.65in; size: letter; }
+  }
+  @media screen {
+    body { max-width: 850px; margin: 0 auto; padding: 24px; background: #f3f4f6; }
+    .page { background: #fff; padding: 40px 48px; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  }
+  @media print { .page { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Print button (screen only) -->
+  <div class="no-print" style="text-align:right;margin-bottom:20px">
+    <button onclick="window.print()" style="background:#d97706;color:#fff;border:none;padding:10px 22px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.5px">⬇ Save as PDF / Print</button>
+  </div>
+
+  <!-- Header -->
+  <div style="border-bottom:3px solid #d97706;padding-bottom:14px;margin-bottom:18px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-size:22px;font-weight:900;letter-spacing:3px;color:#d97706;text-transform:uppercase">AEX</div>
+        <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#374151">Daily Trade Coordination Meeting</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:800;color:#111827">${esc(date)}</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px">Facilitator: <strong>${esc(fac)}</strong></div>
+        <div style="font-size:11px;color:#6b7280">Applied Digital — AEX Project, Boyce LA</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Safety topic banner -->
+  <div style="background:#fef2f2;border:1px solid #fecaca;border-left:4px solid #dc2626;border-radius:4px;padding:8px 14px;margin-bottom:18px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:18px">🚧</span>
+    <div>
+      <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#dc2626">Today's Safety Topic</div>
+      <div style="font-size:14px;font-weight:700;color:#111827">${esc(topic)}</div>
+    </div>
+  </div>
+
+  <!-- Stat pills -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
+    ${pill('Present',present,'#15803d')}
+    ${pill('Remote / Teams',remote,'#1d4ed8')}
+    ${pill('Total On Site',grandTotal,'#d97706')}
+    ${pill('Open Conflicts',openConf.length,openConf.length>0?'#dc2626':'#15803d')}
+    ${pill('Open Inspections',openInsp.length,openInsp.length>0?'#d97706':'#15803d')}
+  </div>
+
+  <!-- Attendance -->
+  ${sec('👥 Attendance',
+    '#374151',
+    `<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#f3f4f6">
+        <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase;width:22%">Company / Trade</th>
+        <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Present</th>
+        <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Absent</th>
+      </tr></thead>
+      <tbody>${attRows}</tbody>
+    </table>`
+  )}
+
+  <!-- Manpower -->
+  ${sec('💪 Manpower Summary',
+    '#374151',
+    `<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#f3f4f6">
+        <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Trade</th>
+        <th style="padding:5px 10px;text-align:center;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Supv</th>
+        <th style="padding:5px 10px;text-align:center;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Journ</th>
+        <th style="padding:5px 10px;text-align:center;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Labor</th>
+        <th style="padding:5px 10px;text-align:center;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">App</th>
+        <th style="padding:5px 10px;text-align:center;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Safety</th>
+        <th style="padding:5px 10px;text-align:center;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Total</th>
+      </tr></thead>
+      <tbody>${mpRows}${mpTotal}</tbody>
+    </table>`
+  )}
+
+  <!-- Trade Coordination -->
+  ${sec('🏗 Trade Coordination', '#374151', taskBlocks || '<p style="color:#6b7280;font-size:12px">No tasks logged</p>')}
+
+  <!-- Safety & JHA -->
+  ${sec('🦺 Safety & JHA',
+    '#374151',
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#6b7280;margin-bottom:6px">Toolbox Talk / JHA Completed</div>
+        <table style="width:100%;border-collapse:collapse">
+          <tbody>${jhaRows}</tbody>
+        </table>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#6b7280;margin-bottom:6px">5S Status</div>
+        ${s5Summary}
+      </div>
+    </div>`
+  )}
+
+  <!-- Conflicts -->
+  ${sec('⚠️ Open Conflicts & Issues', openConf.length>0?'#dc2626':'#374151', confSection)}
+
+  <!-- Inspections -->
+  ${sec('🔍 Open Inspections', '#374151', inspSection)}
+
+  <!-- Footer -->
+  <div style="margin-top:24px;padding-top:12px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af">
+    <span>AEX Project — Applied Digital — Boyce, Louisiana (Rapides Parish)</span>
+    <span>Generated ${new Date().toLocaleString()}</span>
+  </div>
+
+</div>
+</body>
+</html>`;
+
+  const w = window.open('','_blank','width=900,height=800');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+}
+
+
+// ══════════════════════════════════════════════════════
+//  TRADE ROSTER MANAGEMENT
+// ══════════════════════════════════════════════════════
+// Central list — all dropdowns read from this
+let tradeRoster = [
+  'Beard Construction','Cajun','Equipment Share',
+  'W.G. Yates','Smyth','Staff Zone','Applied Digital','MMR'
+];
+
+function rebuildTradeDropdowns(){
+  const ids = ['new-att-company','task-trade','obs-trade','cf-trade','insp-trade'];
+  ids.forEach(id=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = tradeRoster.map(t=>`<option${t===cur?' selected':''}>${t}</option>`).join('');
+  });
+  renderTradesList();
+}
+
+function renderTradesList(){
+  const el = document.getElementById('trades-list');
+  if(!el) return;
+  el.innerHTML = tradeRoster.map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px">
+      <span style="width:10px;height:10px;border-radius:50%;background:${tradeColor(t)};display:inline-block;flex-shrink:0"></span>
+      <span style="flex:1;font-weight:600;font-size:14px">${t}</span>
+      <button class="att-remove" title="Remove trade" onclick="removeTrade(${i})" style="width:26px;height:26px;font-size:14px">✕</button>
+    </div>`).join('');
+}
+
+function toggleAddTrade(){ document.getElementById('add-trade-form').classList.toggle('open'); }
+
+function addTrade(){
+  const name = document.getElementById('new-trade-name').value.trim();
+  if(!name){ alert('Please enter a trade name'); return; }
+  if(tradeRoster.includes(name)){ alert(name+' is already in the roster'); return; }
+  tradeRoster.push(name);
+  tradeColor(name); // pre-generate and cache color immediately
+  document.getElementById('new-trade-name').value='';
+  document.getElementById('add-trade-form').classList.remove('open');
+  rebuildTradeDropdowns();
+  saveState();
+}
+
+function removeTrade(idx){
+  const name = tradeRoster[idx];
+  if(!confirm('Remove "'+name+'" from the trade roster?\n\nThis removes it from all dropdowns but does NOT delete any existing entries already logged under this trade.')) return;
+  tradeRoster.splice(idx,1);
+  rebuildTradeDropdowns();
+  saveState();
+}
+
+// ── Remove conflict ──
+function removeConflict(id){
+  const c = conflicts.find(x=>x.id===id);
+  if(!c) return;
+  if(!confirm('Delete this conflict entry?\n\n"'+c.desc+'"\n\nThis cannot be undone.')) return;
+  const i = conflicts.findIndex(x=>x.id===id);
+  conflicts.splice(i,1);
+  renderConflicts();
+  saveState();
+}
+
+// ── Remove inspection ──
+function removeInspection(id){
+  const insp = inspections.find(x=>x.id===id);
+  if(!insp) return;
+  if(!confirm('Delete this inspection entry?\n\n"'+insp.type+' — '+insp.trade+'"\n\nThis cannot be undone.')) return;
+  const i = inspections.findIndex(x=>x.id===id);
+  inspections.splice(i,1);
+  renderInspections();
+  saveState();
+}
+
+
+// ══════════════════════════════════════════════════════
+//  MAN HOURS LOG
+// ══════════════════════════════════════════════════════
+let manHoursLog = [];   // [{date, trade, supervision, journeyman, laborers, apprentice, safety, hrsPerWorker}]
+let mhNextId = 1;
+
+function getMHHrs(){
+  const el = document.getElementById('mh-hrs-default');
+  return el ? (parseFloat(el.value)||10) : 10;
+}
+
+function getWeekStart(){
+  const el = document.getElementById('mh-week-start');
+  if(!el || !el.value) return null;
+  const p = el.value.split('/');
+  if(p.length!==3) return null;
+  return new Date(parseInt(p[2]), parseInt(p[0])-1, parseInt(p[1]));
+}
+
+function parseDate(str){
+  // handles MM/DD/YYYY
+  if(!str) return null;
+  const p = str.split('/');
+  if(p.length===3) return new Date(parseInt(p[2]), parseInt(p[0])-1, parseInt(p[1]));
+  return new Date(str);
+}
+
+function formatDateShort(d){
+  if(!(d instanceof Date) || isNaN(d)) return '—';
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return days[d.getDay()]+' '+(d.getMonth()+1)+'/'+(d.getDate());
+}
+
+function logTodayHours(){
+  const date = document.getElementById('hdr-date').value;
+  if(!date){ alert("Set today's date in the header first."); return; }
+  const hrs = getMHHrs();
+  // Check if already logged today
+  const existing = manHoursLog.filter(e=>e.date===date);
+  if(existing.length){
+    if(!confirm('Man hours for '+date+' are already logged ('+existing.length+' trade entries).\n\nOverwrite with current manpower numbers?')) return;
+    // Remove existing entries for this date
+    manHoursLog = manHoursLog.filter(e=>e.date!==date);
+  }
+  // Log each trade from current manpower
+  manpower.forEach(m=>{
+    const total = mpRowTotal(m);
+    if(total===0) return; // skip trades with no workers
+    manHoursLog.push({
+      id: mhNextId++,
+      date,
+      trade: m.trade,
+      supervision: m.supervision||0,
+      journeyman: m.journeyman||0,
+      laborers: m.laborers||0,
+      apprentice: m.apprentice||0,
+      safety: m.safety||0,
+      hrsPerWorker: hrs
+    });
+  });
+  renderManHours();
+  saveState();
+  // Flash feedback
+  const btn = event.currentTarget;
+  const orig = btn.textContent;
+  btn.textContent = '✅ Logged!';
+  btn.disabled = true;
+  setTimeout(()=>{ btn.textContent=orig; btn.disabled=false; }, 2000);
+}
+
+function removeMHEntry(id){
+  if(!confirm('Remove this entry?')) return;
+  manHoursLog = manHoursLog.filter(e=>e.id!==id);
+  renderManHours();
+  saveState();
+}
+
+function clearAllMHLog(){
+  if(!confirm('Clear the entire man hours log?\n\nThis cannot be undone.')) return;
+  manHoursLog = [];
+  mhNextId = 1;
+  renderManHours();
+  saveState();
+}
+
+function renderManHours(){
+  const tbody = document.getElementById('mh-log-body');
+  const tfoot = document.getElementById('mh-log-foot');
+  const empty = document.getElementById('mh-empty');
+  const weeklySummary = document.getElementById('mh-weekly-summary');
+  if(!tbody) return;
+
+  if(!manHoursLog.length){
+    tbody.innerHTML=''; tfoot.innerHTML='';
+    empty.style.display='block';
+    weeklySummary.innerHTML='';
+    return;
+  }
+  empty.style.display='none';
+
+  // Sort by date desc
+  const sorted = [...manHoursLog].sort((a,b)=> a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+
+  // Build daily log table
+  let grandWorkers=0, grandHours=0;
+  tbody.innerHTML = sorted.map(e=>{
+    const total = e.supervision+e.journeyman+e.laborers+e.apprentice+e.safety;
+    const mh = total * e.hrsPerWorker;
+    grandWorkers += total; grandHours += mh;
+    const col = tradeColor(e.trade);
+    return `<tr>
+      <td style="white-space:nowrap;font-size:12px;color:var(--text-muted)">${e.date}</td>
+      <td style="font-weight:600;color:${col}">${e.trade}</td>
+      <td style="text-align:center">${e.supervision}</td>
+      <td style="text-align:center">${e.journeyman}</td>
+      <td style="text-align:center">${e.laborers}</td>
+      <td style="text-align:center">${e.apprentice}</td>
+      <td style="text-align:center">${e.safety}</td>
+      <td style="text-align:center;font-weight:700">${total}</td>
+      <td style="text-align:center;font-size:12px;color:var(--text-muted)">${e.hrsPerWorker}h</td>
+      <td style="text-align:center;font-weight:800;color:var(--accent);font-size:14px">${mh.toLocaleString()}</td>
+      <td><button class="att-remove" onclick="removeMHEntry(${e.id})" style="width:22px;height:22px;font-size:12px">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  tfoot.innerHTML = `<tr style="background:var(--surface2);border-top:2px solid var(--accent)">
+    <td colspan="7" style="padding:8px 12px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--accent)">GRAND TOTAL</td>
+    <td style="text-align:center;font-weight:800;font-size:15px">${grandWorkers.toLocaleString()}</td>
+    <td></td>
+    <td style="text-align:center;font-weight:900;font-size:17px;color:var(--accent)">${grandHours.toLocaleString()}</td>
+    <td></td>
+  </tr>`;
+
+  // ── Weekly summary ──
+  // Group log by week (Mon–Sun) then by date within week
+  const weekStart = getWeekStart();
+  const dates = [...new Set(manHoursLog.map(e=>e.date))].sort();
+
+  // Build week buckets
+  const weeks = {};
+  dates.forEach(d=>{
+    const dt = parseDate(d);
+    if(!dt) return;
+    // week key = Monday of that week
+    const day = dt.getDay(); // 0=Sun
+    const diff = day===0 ? -6 : 1-day;
+    const mon = new Date(dt); mon.setDate(dt.getDate()+diff);
+    const wk = mon.toISOString().slice(0,10);
+    if(!weeks[wk]) weeks[wk]=[];
+    if(!weeks[wk].includes(d)) weeks[wk].push(d);
+  });
+
+  if(!Object.keys(weeks).length){ weeklySummary.innerHTML=''; return; }
+
+  // For each week build a summary card
+  weeklySummary.innerHTML = Object.entries(weeks).sort((a,b)=>b[0]<a[0]?-1:1).map(([wk, wkDates])=>{
+    // Per-trade totals for the week
+    const tradeTotals={};
+    wkDates.forEach(d=>{
+      manHoursLog.filter(e=>e.date===d).forEach(e=>{
+        if(!tradeTotals[e.trade]) tradeTotals[e.trade]={workers:0,hours:0};
+        const w=e.supervision+e.journeyman+e.laborers+e.apprentice+e.safety;
+        tradeTotals[e.trade].workers+=w;
+        tradeTotals[e.trade].hours+=w*e.hrsPerWorker;
+      });
+    });
+    const weekTotal = Object.values(tradeTotals).reduce((s,v)=>s+v.hours,0);
+    const weekWorkers = Object.values(tradeTotals).reduce((s,v)=>s+v.workers,0);
+
+    // Week label
+    const monDt = new Date(wk+'T12:00:00');
+    const friDt = new Date(monDt); friDt.setDate(monDt.getDate()+4);
+    const wkLabel = `Week of ${(monDt.getMonth()+1)}/${monDt.getDate()} – ${(friDt.getMonth()+1)}/${friDt.getDate()}/${friDt.getFullYear()}`;
+
+    // Daily breakdown within week
+    const dailyRows = wkDates.sort().map(d=>{
+      const dayEntries = manHoursLog.filter(e=>e.date===d);
+      const dayMH = dayEntries.reduce((s,e)=>{
+        const w=e.supervision+e.journeyman+e.laborers+e.apprentice+e.safety;
+        return s+w*e.hrsPerWorker;
+      },0);
+      const dayW = dayEntries.reduce((s,e)=>s+e.supervision+e.journeyman+e.laborers+e.apprentice+e.safety,0);
+      const dt=parseDate(d);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <span style="color:var(--text-muted)">${formatDateShort(dt)} &nbsp;<span style="color:var(--text-dim)">${d}</span></span>
+        <span>${dayW} workers &nbsp;·&nbsp; <strong style="color:var(--accent)">${dayMH.toLocaleString()} MH</strong></span>
+      </div>`;
+    }).join('');
+
+    const tradeRows = Object.entries(tradeTotals).map(([tr,v])=>`
+      <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border)">
+        <span style="font-weight:600;color:${tradeColor(tr)}">${tr}</span>
+        <span style="color:var(--text-muted)">${v.workers} workers &nbsp;·&nbsp; <strong style="color:var(--text)">${v.hours.toLocaleString()} MH</strong></span>
+      </div>`).join('');
+
+    return `<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px">${wkLabel}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${wkDates.length} day${wkDates.length!==1?'s':''} logged</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;color:var(--accent);line-height:1">${weekTotal.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase">Total Man Hours</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;letter-spacing:0.5px">Daily Breakdown</div>
+          ${dailyRows}
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;letter-spacing:0.5px">By Trade</div>
+          ${tradeRows}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── PDF Export ──
+function exportManHoursPDF(){
+  if(!manHoursLog.length){ alert('No man hours logged yet. Click "📌 Log Today" first.'); return; }
+
+  const proj = 'AEX Project — Applied Digital — Boyce, Louisiana';
+  const esc = s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // Grand totals
+  const grandMH = manHoursLog.reduce((s,e)=>{
+    const w=e.supervision+e.journeyman+e.laborers+e.apprentice+e.safety;
+    return s+w*e.hrsPerWorker;
+  },0);
+  const grandW = manHoursLog.reduce((s,e)=>s+e.supervision+e.journeyman+e.laborers+e.apprentice+e.safety,0);
+
+  // Build week blocks
+  const dates = [...new Set(manHoursLog.map(e=>e.date))].sort();
+  const weeks = {};
+  dates.forEach(d=>{
+    const dt=parseDate(d); if(!dt) return;
+    const day=dt.getDay();
+    const diff=day===0?-6:1-day;
+    const mon=new Date(dt); mon.setDate(dt.getDate()+diff);
+    const wk=mon.toISOString().slice(0,10);
+    if(!weeks[wk]) weeks[wk]=[];
+    if(!weeks[wk].includes(d)) weeks[wk].push(d);
+  });
+
+  const sec=(title,accent,body)=>`
+    <div style="margin-bottom:22px;break-inside:avoid">
+      <div style="background:${accent};color:#fff;padding:7px 14px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;border-radius:4px 4px 0 0">${title}</div>
+      <div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 4px 4px;padding:14px">${body}</div>
+    </div>`;
+
+  const weekBlocks = Object.entries(weeks).sort((a,b)=>a[0]<b[0]?-1:1).map(([wk,wkDates])=>{
+    const monDt=new Date(wk+'T12:00:00');
+    const friDt=new Date(monDt); friDt.setDate(monDt.getDate()+4);
+    const wkLabel=`Week of ${(monDt.getMonth()+1)}/${monDt.getDate()} – ${(friDt.getMonth()+1)}/${friDt.getDate()}/${friDt.getFullYear()}`;
+
+    // Daily rows
+    const dailyRowsHTML = wkDates.sort().map(d=>{
+      const entries=manHoursLog.filter(e=>e.date===d);
+      const dayW=entries.reduce((s,e)=>s+e.supervision+e.journeyman+e.laborers+e.apprentice+e.safety,0);
+      const dayMH=entries.reduce((s,e)=>{const w=e.supervision+e.journeyman+e.laborers+e.apprentice+e.safety;return s+w*e.hrsPerWorker;},0);
+      const dt=parseDate(d);
+      const dayName=dt?['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getDay()]:'';
+      return `<tr>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;font-weight:600">${dayName} ${esc(d)}</td>
+        <td colspan="5" style="padding:5px 10px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:11px">${entries.map(e=>esc(e.trade)).join(', ')}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:700">${dayW}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:800;color:#d97706;font-size:14px">${dayMH.toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+
+    // Trade detail rows
+    const tradeTotals={};
+    wkDates.forEach(d=>{
+      manHoursLog.filter(e=>e.date===d).forEach(e=>{
+        if(!tradeTotals[e.trade]) tradeTotals[e.trade]={supervision:0,journeyman:0,laborers:0,apprentice:0,safety:0,hours:0};
+        tradeTotals[e.trade].supervision+=e.supervision;
+        tradeTotals[e.trade].journeyman+=e.journeyman;
+        tradeTotals[e.trade].laborers+=e.laborers;
+        tradeTotals[e.trade].apprentice+=e.apprentice;
+        tradeTotals[e.trade].safety+=e.safety;
+        const w=e.supervision+e.journeyman+e.laborers+e.apprentice+e.safety;
+        tradeTotals[e.trade].hours+=w*e.hrsPerWorker;
+      });
+    });
+    const wkTotal=Object.values(tradeTotals).reduce((s,v)=>s+v.hours,0);
+    const wkWorkers=Object.values(tradeTotals).reduce((s,v)=>s+v.supervision+v.journeyman+v.laborers+v.apprentice+v.safety,0);
+
+    const tradeDetailRows=Object.entries(tradeTotals).map(([tr,v])=>{
+      const tw=v.supervision+v.journeyman+v.laborers+v.apprentice+v.safety;
+      return `<tr>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;font-weight:600;color:#374151">${esc(tr)}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center">${v.supervision}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center">${v.journeyman}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center">${v.laborers}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center">${v.apprentice}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center">${v.safety}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:700">${tw}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:800;color:#d97706">${v.hours.toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+
+    const totRow=`<tr style="background:#f9fafb;font-weight:800">
+      <td style="padding:6px 10px;color:#d97706;text-transform:uppercase;font-size:11px">Week Total</td>
+      <td colspan="5" style="padding:6px 10px"></td>
+      <td style="padding:6px 10px;text-align:center">${wkWorkers}</td>
+      <td style="padding:6px 10px;text-align:center;color:#d97706;font-size:15px">${wkTotal.toLocaleString()}</td>
+    </tr>`;
+
+    const thStyle='padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase;background:#f3f4f6;';
+    const thCStyle=thStyle+'text-align:center;';
+
+    return `
+    <div style="margin-bottom:28px;break-inside:avoid">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #d97706">
+        <div style="font-size:15px;font-weight:800;color:#111827">${wkLabel}</div>
+        <div style="font-size:22px;font-weight:900;color:#d97706">${wkTotal.toLocaleString()} MH</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px">
+        <thead><tr>
+          <th style="${thStyle}">Day / Date</th>
+          <th colspan="5" style="${thStyle}">Trades on Site</th>
+          <th style="${thCStyle}">Workers</th>
+          <th style="${thCStyle}">Man Hours</th>
+        </tr></thead>
+        <tbody>${dailyRowsHTML}</tbody>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr>
+          <th style="${thStyle}">Trade</th>
+          <th style="${thCStyle}">Supv</th>
+          <th style="${thCStyle}">Journ</th>
+          <th style="${thCStyle}">Labor</th>
+          <th style="${thCStyle}">App</th>
+          <th style="${thCStyle}">Safety</th>
+          <th style="${thCStyle}">Total</th>
+          <th style="${thCStyle}">Man Hours</th>
+        </tr></thead>
+        <tbody>${tradeDetailRows}${totRow}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  // Cumulative trade totals
+  const cumTrade={};
+  manHoursLog.forEach(e=>{
+    if(!cumTrade[e.trade]) cumTrade[e.trade]={workers:0,hours:0};
+    const w=e.supervision+e.journeyman+e.laborers+e.apprentice+e.safety;
+    cumTrade[e.trade].workers+=w; cumTrade[e.trade].hours+=w*e.hrsPerWorker;
+  });
+  const cumRows=Object.entries(cumTrade).sort((a,b)=>b[1].hours-a[1].hours).map(([tr,v])=>`
+    <tr>
+      <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;font-weight:600">${esc(tr)}</td>
+      <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center">${v.workers.toLocaleString()}</td>
+      <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:800;color:#d97706">${v.hours.toLocaleString()}</td>
+      <td style="padding:5px 10px;border-bottom:1px solid #f3f4f6;text-align:center;color:#6b7280">${grandMH>0?Math.round(v.hours/grandMH*100)+'%':'—'}</td>
+    </tr>`).join('');
+
+  const html=`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>AEX Man Hours Report</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;font-size:13px;color:#111827;background:#fff}
+  @media print{
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .no-print{display:none!important}
+    @page{margin:0.6in 0.65in;size:letter}
+  }
+  @media screen{
+    body{max-width:900px;margin:0 auto;padding:24px;background:#f3f4f6}
+    .page{background:#fff;padding:40px 48px;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+  }
+  @media print{.page{padding:0}}
+</style>
+</head>
+<body><div class="page">
+
+<div class="no-print" style="text-align:right;margin-bottom:20px">
+  <button onclick="window.print()" style="background:#d97706;color:#fff;border:none;padding:10px 22px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer">⬇ Save as PDF / Print</button>
+</div>
+
+<!-- Header -->
+<div style="border-bottom:3px solid #d97706;padding-bottom:14px;margin-bottom:20px">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <div style="font-size:22px;font-weight:900;letter-spacing:3px;color:#d97706;text-transform:uppercase">AEX</div>
+      <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#374151">Man Hour Report</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:2px">${esc(proj)}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;color:#6b7280">Generated: ${new Date().toLocaleDateString()}</div>
+      <div style="font-size:11px;color:#6b7280">Period: ${esc(dates[0])} – ${esc(dates[dates.length-1])}</div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI pills -->
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">
+  ${[
+    ['Total Man Hours',grandMH.toLocaleString(),'#d97706'],
+    ['Total Worker-Days',grandW.toLocaleString(),'#374151'],
+    ['Days Logged',dates.length,'#374151'],
+    ['Weeks Logged',Object.keys(weeks).length,'#374151'],
+    ['Trades on Site',Object.keys(cumTrade).length,'#374151'],
+  ].map(([l,v,c])=>`<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 16px;text-align:center;min-width:110px">
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:0.5px">${l}</div>
+    <div style="font-size:24px;font-weight:900;color:${c};line-height:1.2">${v}</div>
+  </div>`).join('')}
+</div>
+
+<!-- Cumulative by trade -->
+${sec('📊 Cumulative Man Hours by Trade','#374151',`
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:#f3f4f6">
+      <th style="padding:5px 10px;text-align:left;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Trade</th>
+      <th style="padding:5px 10px;text-align:center;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Total Workers</th>
+      <th style="padding:5px 10px;text-align:center;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">Man Hours</th>
+      <th style="padding:5px 10px;text-align:center;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase">% of Total</th>
+    </tr></thead>
+    <tbody>${cumRows}
+      <tr style="background:#f9fafb;font-weight:800">
+        <td style="padding:6px 10px;color:#d97706;text-transform:uppercase;font-size:11px">Total</td>
+        <td style="padding:6px 10px;text-align:center">${grandW.toLocaleString()}</td>
+        <td style="padding:6px 10px;text-align:center;color:#d97706;font-size:15px">${grandMH.toLocaleString()}</td>
+        <td style="padding:6px 10px;text-align:center">100%</td>
+      </tr>
+    </tbody>
+  </table>`
+)}
+
+<!-- Weekly breakdown -->
+<div style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#374151;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e5e7eb">📅 Weekly Breakdown</div>
+${weekBlocks}
+
+<!-- Footer -->
+<div style="margin-top:24px;padding-top:10px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#9ca3af">
+  <span>${esc(proj)}</span>
+  <span>Generated ${new Date().toLocaleString()}</span>
+</div>
+
+</div></body></html>`;
+
+  const w=window.open('','_blank','width=960,height=860');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+}
+
+// ══════════════════════════════════════════════════════
+//  SAVE / LOAD STATE  (localStorage)
+// ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+//  SYNC CONFIGURATION
+// ══════════════════════════════════════════════════════
+const SAVE_KEY   = 'aex_meeting_state';
+const SYNC_KEY   = 'aex_sync_url';
+const AUTHOR_KEY = 'aex_author';
+let syncUrl      = localStorage.getItem(SYNC_KEY) || '';
+let saveTimer    = null;
+let pollTimer    = null;
+let lastSyncTs   = null;   // ISO string of last pull from server
+let isSyncing    = false;
+
+function getAuthor(){
+  let a = localStorage.getItem(AUTHOR_KEY);
+  if(!a){
+    a = prompt('Your name (used to track who made changes):') || 'Unknown';
+    localStorage.setItem(AUTHOR_KEY, a);
+  }
+  return a;
+}
+
+function setSyncStatus(text, color){
+  const el = document.getElementById('sync-status');
+  if(el){ el.textContent = text; el.style.color = color || 'var(--text-dim)'; }
+}
+
+// ── Activate sync from banner ──
+function activateSync(){
+  const url = (document.getElementById('sync-url-input')||{}).value.trim();
+  if(!url || !url.startsWith('https://')){ alert('Please paste a valid https:// URL'); return; }
+  syncUrl = url;
+  localStorage.setItem(SYNC_KEY, url);
+  getAuthor();
+  document.getElementById('sync-banner').classList.add('hidden');
+  setSyncStatus('⟳ Connecting…', 'var(--yellow)');
+  pullFromCloud(true);
+}
+
+function dismissSyncBanner(){
+  document.getElementById('sync-banner').classList.add('hidden');
+}
+
+// ── Build state snapshot ──
+function buildState(){
+  return {
+    date:         document.getElementById('hdr-date').value,
+    facilitator:  document.getElementById('hdr-facilitator').value,
+    safetyTopic:  document.getElementById('hdr-safety').value,
+    attendees:    JSON.parse(JSON.stringify(attendees)),
+    attNextId,
+    manpower:     JSON.parse(JSON.stringify(manpower)),
+    mpNextId,
+    tasks:        JSON.parse(JSON.stringify(tasks)),
+    taskNextId,
+    jhaItems:     JSON.parse(JSON.stringify(jhaItems)),
+    s5Items:      JSON.parse(JSON.stringify(s5Items)),
+    observations: JSON.parse(JSON.stringify(observations)),
+    conflicts:    JSON.parse(JSON.stringify(conflicts)),
+    cfNextId,
+    inspections:  JSON.parse(JSON.stringify(inspections)),
+    inspNextId,
+    tradeRoster:  JSON.parse(JSON.stringify(tradeRoster)),
+    manHoursLog:  JSON.parse(JSON.stringify(manHoursLog)),
+    mhNextId,
+    mhHrsDefault: (document.getElementById('mh-hrs-default')||{}).value||'10',
+  };
+}
+
+// ── Apply a state snapshot to the live app ──
+function applyState(s){
+  if(!s) return;
+  if(s.date){ document.getElementById('hdr-date').value = s.date; }
+  if(s.facilitator){ document.getElementById('hdr-facilitator').value = s.facilitator; }
+  if(s.safetyTopic){
+    document.getElementById('hdr-safety').value = s.safetyTopic;
+    document.getElementById('safety-topic-display').textContent = s.safetyTopic;
+  }
+  if(s.attendees){    attendees.length=0;    s.attendees.forEach(a=>attendees.push(a));    attNextId=s.attNextId||100; }
+  if(s.manpower){     manpower.length=0;     s.manpower.forEach(m=>manpower.push(m));       mpNextId=s.mpNextId||100; }
+  if(s.tasks){        tasks.length=0;        s.tasks.forEach(t=>tasks.push(t));             taskNextId=s.taskNextId||100; }
+  if(s.jhaItems){     jhaItems.length=0;     s.jhaItems.forEach(j=>jhaItems.push(j)); }
+  if(s.s5Items){      s5Items.length=0;      s.s5Items.forEach(i=>s5Items.push(i)); }
+  if(s.observations){ observations.length=0; s.observations.forEach(o=>observations.push(o)); }
+  if(s.conflicts){    conflicts.length=0;    s.conflicts.forEach(c=>conflicts.push(c));     cfNextId=s.cfNextId||1; }
+  if(s.inspections){  inspections.length=0;  s.inspections.forEach(i=>inspections.push(i)); inspNextId=s.inspNextId||100; }
+  if(s.tradeRoster){  tradeRoster.length=0;  s.tradeRoster.forEach(t=>tradeRoster.push(t)); }
+  if(s.manHoursLog){  manHoursLog=s.manHoursLog; mhNextId=s.mhNextId||1; }
+  if(s.mhHrsDefault){ const el=document.getElementById('mh-hrs-default'); if(el) el.value=s.mhHrsDefault; }
+}
+
+// ── Re-render everything ──
+function renderAll(){
+  rebuildTradeDropdowns();
+  renderManHours();
+  renderAttendance();
+  renderManpower();
+  renderTrade();
+  renderSafety();
+  renderObservations();
+  renderConflicts();
+  renderInspections();
+  renderSummary();
+  updateSummaryBadge();
+}
+
+// ══════════════════════════════════════════════════════
+//  SAVE STATE  (local + cloud)
+// ══════════════════════════════════════════════════════
+function saveState(){
+  clearTimeout(saveTimer);
+  const ind = document.getElementById('save-indicator');
+  ind.className = 'save-indicator saving';
+  ind.textContent = '● Saving…';
+  saveTimer = setTimeout(async ()=>{
+    const state = buildState();
+    // Always save locally first as a fallback
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch(e){}
+
+    if(!syncUrl){
+      ind.className = 'save-indicator saved';
+      ind.textContent = '● Saved (local)';
+      setTimeout(()=>{ ind.className='save-indicator'; ind.textContent='● Saved'; }, 2000);
+      return;
+    }
+
+    // Push to cloud via JSONP (works from file:// — no CORS restrictions)
+    try {
+      isSyncing = true;
+      setSyncStatus('⟳ Syncing…', 'var(--yellow)');
+      const payload = encodeURIComponent(JSON.stringify({
+        state,
+        author: localStorage.getItem(AUTHOR_KEY)||'Unknown'
+      }));
+      const url = syncUrl + '?action=save&data=' + payload + '&callback=__aexSaveCallback&t=' + Date.now();
+      const data = await jsonpRequest(url, '__aexSaveCallback');
+      if(data.ok){
+        lastSyncTs = data.timestamp;
+        ind.className = 'save-indicator saved';
+        ind.textContent = '● Saved';
+        const t = new Date(data.timestamp);
+        setSyncStatus('☁ Synced ' + t.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), 'var(--green-bright)');
+      } else {
+        throw new Error(data.error||'Unknown error');
+      }
+    } catch(err){
+      ind.className = 'save-indicator';
+      ind.textContent = '● Saved (local)';
+      setSyncStatus('⚠ Cloud save failed — check URL', 'var(--yellow)');
+      console.warn('Cloud save error:', err.message);
+    } finally {
+      isSyncing = false;
+    }
+  }, 800);
+}
+
+// ══════════════════════════════════════════════════════
+//  LOAD STATE  (cloud first, local fallback)
+// ══════════════════════════════════════════════════════
+function loadState(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const s = JSON.parse(raw);
+    applyState(s);
+    document.getElementById('save-indicator').textContent='● Restored';
+    setTimeout(()=>{ document.getElementById('save-indicator').textContent='● Saved'; },2500);
+    return true;
+  } catch(e){ return false; }
+}
+
+// ── Pull latest from cloud, re-render if newer ──
+// JSONP helper — works from file:// with no CORS issues
+function jsonpRequest(url, callbackName){
+  return new Promise((resolve, reject)=>{
+    const timeout = setTimeout(()=>{
+      cleanup();
+      reject(new Error('Request timed out'));
+    }, 10000);
+
+    function cleanup(){
+      clearTimeout(timeout);
+      delete window[callbackName];
+      const el = document.getElementById('jsonp-'+callbackName);
+      if(el) el.remove();
+    }
+
+    window[callbackName] = function(data){
+      cleanup();
+      resolve(data);
+    };
+
+    const script = document.createElement('script');
+    script.id = 'jsonp-'+callbackName;
+    script.src = url;
+    script.onerror = ()=>{ cleanup(); reject(new Error('Script load failed — check URL')); };
+    document.head.appendChild(script);
+  });
+}
+
+async function pullFromCloud(forceApply){
+  if(!syncUrl || isSyncing) return;
+  try {
+    isSyncing = true;
+    setSyncStatus('⟳ Checking…', 'var(--text-dim)');
+    const data = await jsonpRequest(syncUrl + '?callback=__aexPullCallback&t=' + Date.now(), '__aexPullCallback');
+    if(!data.ok || !data.state) throw new Error(data.error||'No state');
+
+    const serverTs = data.timestamp;
+    const isNewer  = !lastSyncTs || new Date(serverTs) > new Date(lastSyncTs);
+
+    if(forceApply || isNewer){
+      // Save current local version as backup before overwriting
+      try { localStorage.setItem(SAVE_KEY+'_backup', localStorage.getItem(SAVE_KEY)||''); } catch(e){}
+      applyState(data.state);
+      // Also save locally so offline fallback stays current
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(data.state)); } catch(e){}
+      lastSyncTs = serverTs;
+      renderAll();
+      const t = new Date(serverTs);
+      const who = data.author ? ' by '+data.author : '';
+      setSyncStatus('☁ Live' + (isNewer && !forceApply ? ' · Updated'+who : ''), 'var(--green-bright)');
+    } else {
+      setSyncStatus('☁ Live · Up to date', 'var(--green-bright)');
+    }
+  } catch(err){
+    setSyncStatus('⚠ Offline', 'var(--yellow)');
+    console.warn('Cloud pull error:', err);
+  } finally {
+    isSyncing = false;
+  }
+}
+
+// ── Auto-poll every 20 seconds when sync is configured ──
+function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
+  if(!syncUrl) return;
+  pollTimer = setInterval(()=> pullFromCloud(false), 20000);
+}
+
+// ══════════════════════════════════════════════════════
+//  NEW DAY
+// ══════════════════════════════════════════════════════
+function openNewDay(){
+  // Pre-fill tomorrow's date
+  const current = document.getElementById('hdr-date').value;
+  let d = new Date();
+  try {
+    const parts = current.split('/');
+    if(parts.length===3) d = new Date(parseInt(parts[2]), parseInt(parts[0])-1, parseInt(parts[1]));
+  } catch(e){}
+  d.setDate(d.getDate()+1);
+  const next = (d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0')+'/'+d.getFullYear();
+  document.getElementById('newday-date').value = next;
+  document.getElementById('newday-modal').classList.add('open');
+}
+
+function closeNewDay(){
+  document.getElementById('newday-modal').classList.remove('open');
+}
+
+function confirmNewDay(){
+  const keepAtt  = document.getElementById('nd-keep-attendance').checked;
+  const keepMP   = document.getElementById('nd-keep-manpower').checked;
+  const keepTasks= document.getElementById('nd-keep-trades').checked;
+  const keepConf = document.getElementById('nd-keep-conflicts').checked;
+  const keepInsp = document.getElementById('nd-keep-inspections').checked;
+  const newDate  = document.getElementById('newday-date').value || todayStr;
+
+  // Update date
+  document.getElementById('hdr-date').value = newDate;
+
+  // Attendance — keep roster but reset all to absent
+  if(!keepAtt){
+    attendees.length = 0;
+  } else {
+    attendees.forEach(a => a.status = 'absent');
+  }
+
+  // Manpower — keep or zero out
+  if(!keepMP){
+    manpower.forEach(m=>{ m.supervision=0; m.journeyman=0; m.laborers=0; m.apprentice=0; m.safety=0; });
+  }
+
+  // Tasks — keep incomplete or clear all
+  if(keepTasks){
+    const incomplete = tasks.filter(t=>t.status!=='Complete');
+    tasks.length=0; incomplete.forEach(t=>tasks.push(t));
+  } else {
+    tasks.length=0;
+  }
+
+  // JHA — reset all to not done
+  jhaItems.forEach(j=>j.done=false);
+
+  // 5S — reset all to Pass
+  s5Items.forEach(s=>s.status='✅ Pass');
+
+  // Observations — always clear (daily log)
+  observations.length=0;
+
+  // Conflicts — keep open or clear all
+  if(!keepConf){
+    conflicts.length=0;
+  } else {
+    const open = conflicts.filter(c=>c.status!=='Resolved');
+    conflicts.length=0; open.forEach(c=>conflicts.push(c));
+  }
+
+  // Inspections — keep incomplete or clear all
+  if(!keepInsp){
+    inspections.length=0;
+  } else {
+    const open = inspections.filter(i=>i.status!=='Complete');
+    inspections.length=0; open.forEach(i=>inspections.push(i));
+  }
+
+  // Reset timer
+  resetTimer();
+
+  closeNewDay();
+
+  // Re-render everything
+  renderAttendance();
+  renderManpower();
+  renderTrade();
+  renderSafety();
+  renderObservations();
+  renderConflicts();
+  renderInspections();
+  renderSummary();
+  updateSummaryBadge();
+  saveState();
+}
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+const hadSavedState = loadState();
+rebuildTradeDropdowns();
+renderManHours();
+renderAttendance();
+renderManpower();
+renderTrade();
+renderSafety();
+renderObservations();
+renderConflicts();
+renderInspections();
+renderSummary();
+updateSummaryBadge();
+
+// Auto-save on any header field change
+['hdr-date','hdr-facilitator','hdr-safety'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', saveState);
+});
+
+// ── Sync startup ──
+if(syncUrl){
+  document.getElementById('sync-banner').classList.add('hidden');
+  // Pre-fill URL input in case user opens settings later
+  const inp = document.getElementById('sync-url-input');
+  if(inp) inp.value = syncUrl;
+  // Pull from cloud on load, then start polling
+  pullFromCloud(true).then(startPolling);
+} else {
+  // Show setup banner after a short delay so it doesn't block initial render
+  setTimeout(()=>{
+    document.getElementById('sync-banner').classList.remove('hidden');
+  }, 1500);
+}
+</script>
+</body>
+</html>
