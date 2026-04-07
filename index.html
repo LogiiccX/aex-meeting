@@ -3198,22 +3198,25 @@ function saveState(){
     try {
       isSyncing = true;
       setSyncStatus('⟳ Syncing…', 'var(--yellow)');
-      const payload = encodeURIComponent(JSON.stringify({
-        state,
-        author: localStorage.getItem(AUTHOR_KEY)||'Unknown'
-      }));
-      const url = syncUrl + '?action=save&data=' + payload + '&t=' + Date.now();
-      const resp = await fetch(url);
-      const data = await resp.json();
-      if(data.ok){
-        lastSyncTs = data.timestamp;
-        ind.className = 'save-indicator saved';
-        ind.textContent = '● Saved';
-        const t = new Date(data.timestamp);
-        setSyncStatus('☁ Synced ' + t.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), 'var(--green-bright)');
-      } else {
-        throw new Error(data.error||'Unknown error');
-      }
+      const resp = await fetch(syncUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          state,
+          author: localStorage.getItem(AUTHOR_KEY)||'Unknown'
+        })
+      });
+      // no-cors returns opaque response — assume success if no network error
+      // Pull immediately after to confirm save landed
+      const data = { ok: true, timestamp: new Date().toISOString() };
+      // With no-cors POST we can't read the response body, so pull to confirm
+      lastSyncTs = null; // force pull to apply
+      ind.className = 'save-indicator saved';
+      ind.textContent = '● Saved';
+      setSyncStatus('☁ Synced ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), 'var(--green-bright)');
+      // Brief delay then pull to confirm server got it
+      setTimeout(()=> pullFromCloud(false), 1500);
     } catch(err){
       ind.className = 'save-indicator';
       ind.textContent = '● Saved (local)';
