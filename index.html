@@ -674,26 +674,6 @@
   .modal-option-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
   .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
 
-  /* ── SYNC SETUP BANNER ── */
-  .sync-banner {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--surface2);
-    border-top: 2px solid var(--accent);
-    padding: 16px 24px;
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    z-index: 999;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
-  }
-  .sync-banner.hidden { display: none; }
-  .sync-banner-title { font-family: "Barlow Condensed",sans-serif; font-weight:800; font-size:16px; color:var(--accent); text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
-  .sync-banner input {
-    flex: 1; min-width: 260px; max-width: 500px;
-    background: var(--surface); border: 1px solid var(--accent);
-    border-radius: var(--radius); color: var(--text);
-    font-family: "Barlow",sans-serif; font-size:12px;
-    padding: 7px 12px; outline: none;
-  }
-
   /* ── SAVE INDICATOR ── */
   .save-indicator {
     font-size: 11px;
@@ -1233,9 +1213,6 @@
   </div>
 
 
-<!-- ══ SYNC SETUP BANNER ══ -->
-<div class="sync-banner" id="sync-banner">
-  <div class="sync-banner-title">⚡ Set Up Cloud Sync</div>
   <div style="font-size:12px;color:var(--text-muted);flex:1;min-width:200px">
     Paste your Google Apps Script Web App URL below to enable live sync across all devices.
     <a href="https://script.google.com" target="_blank" style="color:var(--accent);margin-left:4px">Open script.google.com →</a>
@@ -3123,7 +3100,7 @@ ${weekBlocks}
 const SAVE_KEY   = 'aex_meeting_state';
 const SYNC_KEY   = 'aex_sync_url';
 const AUTHOR_KEY = 'aex_author';
-let syncUrl      = localStorage.getItem(SYNC_KEY) || '';
+let syncUrl      = 'https://script.google.com/macros/s/AKfycby1QfKElhjauXMWaGvJbpdzh_YJUlU5vHDF6kJBK9IjxxEpHRCAuXZ5qjwMDPUGLFCh4Q/exec'; // hardcoded — no setup required
 let saveTimer    = null;
 let pollTimer    = null;
 let lastSyncTs   = null;   // ISO string of last pull from server
@@ -3143,21 +3120,6 @@ function setSyncStatus(text, color){
   if(el){ el.textContent = text; el.style.color = color || 'var(--text-dim)'; }
 }
 
-// ── Activate sync from banner ──
-function activateSync(){
-  const url = (document.getElementById('sync-url-input')||{}).value.trim();
-  if(!url || !url.startsWith('https://')){ alert('Please paste a valid https:// URL'); return; }
-  syncUrl = url;
-  localStorage.setItem(SYNC_KEY, url);
-  getAuthor();
-  document.getElementById('sync-banner').classList.add('hidden');
-  setSyncStatus('⟳ Connecting…', 'var(--yellow)');
-  pullFromCloud(true);
-}
-
-function dismissSyncBanner(){
-  document.getElementById('sync-banner').classList.add('hidden');
-}
 
 // ── Build state snapshot ──
 function buildState(){
@@ -3472,20 +3434,8 @@ updateSummaryBadge();
   document.getElementById(id).addEventListener('input', saveState);
 });
 
-// ── Sync startup ──
-if(syncUrl){
-  document.getElementById('sync-banner').classList.add('hidden');
-  // Pre-fill URL input in case user opens settings later
-  const inp = document.getElementById('sync-url-input');
-  if(inp) inp.value = syncUrl;
-  // Pull from cloud on load, then start polling
-  pullFromCloud(true).then(startPolling);
-} else {
-  // Show setup banner after a short delay so it doesn't block initial render
-  setTimeout(()=>{
-    document.getElementById('sync-banner').classList.remove('hidden');
-  }, 1500);
-}
+// ── Sync startup — auto-connect, no setup required ──
+pullFromCloud(true).then(startPolling);
 </script>
 </body>
 </html>
